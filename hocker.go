@@ -35,12 +35,20 @@ func getArchType() string {
 	return runTerminalCmd("uname", "-m")
 }
 
-func writeFile(contents string, path string) {
+func writeFile(contents string, path string, overwrite bool) bool {
+    _, err := os.Stat(path)
+    if !overwrite && err == nil {
+        fmt.Printf("%s already exist!\n", path)
+        return false
+    }
+
 	fp, err := os.Create(path)
 	checkError(err)
 	write_buf := bufio.NewWriter(fp)
 	write_buf.WriteString(contents)
 	write_buf.Flush()
+
+    return true
 }
 
 func dockerBuild(ctx *cli.Context, dockerTag string) {
@@ -104,7 +112,7 @@ func dockerRun(ctx *cli.Context, dockerTag string) {
 	}
 
 	lastContainerID := runTerminalCmd("docker", "ps -qn 1")
-	writeFile(lastContainerID, ".last_exec_cont_id.txt")
+	writeFile(lastContainerID, ".last_exec_cont_id.txt", true)
 
     if shellType != "nosh" {
 	    dockerExec(ctx)
@@ -198,11 +206,16 @@ func initDockerfile(ctx *cli.Context) {
 
 	os.Mkdir("docker", os.ModePerm)
 
-	writeFile(dockerContents, "docker/Dockerfile")
-	writeFile(dockerContents, "docker/Dockerfile.aarch64")
+    isSuccess1 := writeFile(dockerContents, "docker/Dockerfile", false)
+    isSuccess2 := writeFile(dockerContents, "docker/Dockerfile.aarch64", false)
 
-	fmt.Println("Success!")
-	fmt.Println("Dockerfile has been created in docker directory")
+    if isSuccess1 && isSuccess2 {
+        fmt.Println("Success!")
+        fmt.Println("Dockerfile has been created in docker directory")
+    } else {
+        fmt.Println("Failed")
+        fmt.Println("Dockerfile already exist in docker directory")
+    }
 }
 
 func main() {
