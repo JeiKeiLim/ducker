@@ -62,7 +62,7 @@ func dockerBuild(ctx *cli.Context, dockerTag string) {
 }
 
 func dockerRun(ctx *cli.Context, dockerTag string) {
-	dockerArgs := ""
+	dockerArgs := ctx.String("docker-args")
 	shellCmd := "/bin/bash"
 
 	runCmd := "docker run -tid --privileged"
@@ -82,10 +82,13 @@ func dockerRun(ctx *cli.Context, dockerTag string) {
 	runCmd += " " + dockerTag
 	runCmd += " " + shellCmd
 
+    fmt.Println(runCmd)
+
 	cmdRun := exec.Command("/bin/sh", "-c", runCmd)
 	cmdRun.Stdout = os.Stdout
 	cmdRun.Stderr = os.Stderr
 	cmdRun.Stdin = os.Stdin
+
 	if err := cmdRun.Run(); err != nil {
 		fmt.Println(err)
 	}
@@ -243,6 +246,15 @@ func main() {
 				Name:    "run",
 				Aliases: []string{"r"},
 				Usage:   "Running docker image",
+                Flags: []cli.Flag{
+                    &cli.StringFlag {
+                        Name: "docker-args",
+                        Aliases: []string{"da"},
+                        Usage: "Extra arguments for docker run",
+                        Value: "",
+                        DefaultText: "",
+                    },
+                },
 				Action: func(cCtx *cli.Context) error {
 					dockerRun(cCtx, dockerTag)
 					return nil
