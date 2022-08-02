@@ -1,6 +1,6 @@
 FROM ubuntu:bionic
 
-LABEL maintainer="Jongkuk Lim <limjk@jmarple.ai>"
+LABEL maintainer="Jongkuk Lim <lim.jeikei@gmail.com>"
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Asia/Seoul
 ENV TERM xterm-256color
@@ -21,6 +21,15 @@ ENV NVIDIA_DRIVER_CAPABILITIES ${NVIDIA_DRIVER_CAPABILITIES:+$NVIDIA_DRIVER_CAPA
 
 RUN sudo apt-get update && sudo apt-get -y install wget curl git
 RUN curl -s https://raw.githubusercontent.com/JeiKeiLim/my_term/main/run.sh | /bin/bash
+
+RUN sudo apt-get update && sudo apt-get install -y zsh && \
+    sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended && \
+    git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k
+RUN echo "\n# Custom settings" >> /home/user/.zshrc && \
+    echo "export PATH=/home/user/.local/bin:$PATH" >> /home/user/.zshrc && \
+    echo "export LC_ALL=C.UTF-8 && export LANG=C.UTF-8" >> /home/user/.zshrc && \
+    sed '11 c\ZSH_THEME=powerlevel10k/powerlevel10k' ~/.zshrc  > tmp.txt && mv tmp.txt ~/.zshrc && \
+    echo 'POWERLEVEL9K_DISABLE_CONFIGURATION_WIZARD=true' >> ~/.zshrc
 
 # Place your environment here
 
