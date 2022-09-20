@@ -291,7 +291,7 @@ func main() {
                     &cli.StringFlag{
                         Name:           "template",
                         Aliases:        []string{"t"},
-                        Usage:          "Docker template ()",
+                        Usage:          "Docker template path (URL, File Path, Default Templates[python, cpp])",
                         Value:          "",
                         DefaultText:    "",
                     },

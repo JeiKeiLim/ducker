@@ -57,8 +57,14 @@ func checkTemplates(template string) string {
         if defaultURL == "" {
             log.Println("Template can not be found")
         } else {
-            fmt.Print("Template successfully read from ")
-            log.Println(defaultURL)
+            urlContent = getContentFromURL(defaultURL)
+
+            if urlContent != "" {
+                fmt.Print("Template successfully read from ")
+                log.Println(defaultURL)
+
+                return urlContent
+            }
         }
     }
 
