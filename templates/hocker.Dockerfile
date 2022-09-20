@@ -36,9 +36,9 @@ RUN cd /home/user/.vim_runtime/my_plugins \
 RUN cd /home/user/.vim_runtime/sources_non_forked && rm -rf tlib vim-fugitive && git clone https://github.com/tomtom/tlib_vim.git tlib && git clone https://github.com/tpope/vim-fugitive.git 
 
 # Add PATH
-RUN echo "export PATH=\$PATH:/home/user/.local/bin:/usr/local/go/bin" >> /home/user/.bashrc
+RUN echo "export PATH=\$PATH:/home/user/.local/bin:/usr/local/go/bin:/home/user/go/bin" >> /home/user/.bashrc
 RUN echo "export LC_ALL=C.UTF-8 && export LANG=C.UTF-8" >> /home/user/.bashrc
 
-RUN echo "export PATH=\$PATH:/home/user/.local/bin:/usr/local/go/bin" >> /home/user/.zshrc
+RUN echo "export PATH=\$PATH:/home/user/.local/bin:/usr/local/go/bin:/home/user/go/bin" >> /home/user/.zshrc
 RUN echo "export LC_ALL=C.UTF-8 && export LANG=C.UTF-8" >> /home/user/.zshrc
 
