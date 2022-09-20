@@ -25,8 +25,8 @@ func getContentFromURL(url string) string {
 
 func checkTemplates(template string) string {
 	defaultTemplate := make(map[string]string)
-	defaultTemplate["python"] = "https://raw.githubusercontent.com/JeiKeiLim/hocker/3076806435752ff5a0c3458ccb9ebc12553c44ea/templates/python.Dockerfile"
-	defaultTemplate["cpp"] = "https://raw.githubusercontent.com/JeiKeiLim/hocker/3076806435752ff5a0c3458ccb9ebc12553c44ea/templates/cpp.Dockerfile"
+	defaultTemplate["python"] = "https://raw.githubusercontent.com/JeiKeiLim/ducker/3076806435752ff5a0c3458ccb9ebc12553c44ea/templates/python.Dockerfile"
+	defaultTemplate["cpp"] = "https://raw.githubusercontent.com/JeiKeiLim/ducker/3076806435752ff5a0c3458ccb9ebc12553c44ea/templates/cpp.Dockerfile"
 
 	if template == "" {
 		return ""
