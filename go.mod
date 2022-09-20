@@ -1,4 +1,4 @@
-module github.com/jeikeilim/hocker
+module github.com/jeikeilim/ducker
 
 go 1.17
 

@@ -1,3 +1,3 @@
-# Hocker
-- Hocker the docker helper
+# Ducker
+- Ducker the docker helper
 
