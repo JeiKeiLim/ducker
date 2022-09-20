@@ -58,16 +58,16 @@ func dockerBuild(ctx *cli.Context, dockerTag string) {
 	if !strings.HasSuffix(dockerTag, "x86_64") {
 		dockerFilePath += "." + getArchType()
 	}
-    buildArgs := ctx.String("args")
+	buildArgs := ctx.String("args")
 
 	buildCmd := "docker build . -t " + dockerTag
 	buildCmd += " -f " + dockerFilePath
 	buildCmd += " --build-arg UID=" + runTerminalCmd("id", "-u")
 	buildCmd += " --build-arg GID=" + runTerminalCmd("id", "-g")
 
-    if buildArgs != "" {
-        buildCmd += " " + buildArgs
-    }
+	if buildArgs != "" {
+		buildCmd += " " + buildArgs
+	}
 
 	cmdRun := exec.Command("/bin/sh", "-c", buildCmd)
 	cmdRun.Stdout = os.Stdout
@@ -79,6 +79,7 @@ func dockerBuild(ctx *cli.Context, dockerTag string) {
 func dockerRun(ctx *cli.Context, dockerTag string) {
 	dockerArgs := ctx.String("docker-args")
 	shellType := ctx.String("shell")
+    mountPWD := ctx.Bool("mount-pwd")
 	shellCmd := "/bin/bash"
 	dockerOpt := "-tid"
 
@@ -94,6 +95,18 @@ func dockerRun(ctx *cli.Context, dockerTag string) {
 	runCmd += " -e TERM=xterm-256color"
 	runCmd += " -v /tmp/.X11-unix:/tmp/.X11-unix:ro"
 	runCmd += " -v /dev:/dev"
+
+    if mountPWD {
+        mydir, err := os.Getwd()
+        if err != nil {
+            fmt.Println(err)
+        } else {
+            baseDir := filepath.Base(mydir)
+            projectName := strings.ToLower(baseDir)
+
+            runCmd += " -v " + mydir + ":/home/user/" + projectName
+        }
+    }
 
 	// Add GPU option if NVIDIA driver exist
 	if _, err := os.Stat("/proc/driver/nvidia/version"); err == nil {
@@ -155,10 +168,11 @@ func dockerExec(ctx *cli.Context) {
 func initDockerfile(ctx *cli.Context) {
 	name := ctx.String("name")
 	contact := ctx.String("contact")
-    template := ctx.String("template")
+	template := ctx.String("template")
+    forceOverwrite := ctx.Bool("force")
 
-    fmt.Println(template)
-    templateContent := checkTemplates(template)
+	fmt.Println(template)
+	templateContent := checkTemplates(template)
 
 	if !ctx.Bool("quite") {
 		reader := bufio.NewReader(os.Stdin)
@@ -218,17 +232,19 @@ func initDockerfile(ctx *cli.Context) {
 	dockerContents += "    sed '11 c\\ZSH_THEME=powerlevel10k/powerlevel10k' ~/.zshrc  > tmp.txt && mv tmp.txt ~/.zshrc && \\\n"
 	dockerContents += "    echo 'POWERLEVEL9K_DISABLE_CONFIGURATION_WIZARD=true' >> ~/.zshrc\n"
 
-    if templateContent != "" {
-        dockerContents += "\n"
-        dockerContents += templateContent
-    }
+	if templateContent != "" {
+		dockerContents += "\n"
+		dockerContents += templateContent
+	}
 	dockerContents += "\n# Place your environment here\n\n"
 
 	err := os.Mkdir("docker", os.ModePerm)
-	checkError(err)
+    if !forceOverwrite {
+        checkError(err)
+    }
 
-	isSuccess1 := writeFile(dockerContents, "docker/Dockerfile", false)
-	isSuccess2 := writeFile(dockerContents, "docker/Dockerfile.aarch64", false)
+	isSuccess1 := writeFile(dockerContents, "docker/Dockerfile", forceOverwrite)
+	isSuccess2 := writeFile(dockerContents, "docker/Dockerfile.aarch64", forceOverwrite)
 
 	if isSuccess1 && isSuccess2 {
 		fmt.Println("Success!")
@@ -288,13 +304,18 @@ func main() {
 						Aliases: []string{"q"},
 						Usage:   "Do not use interactive mode",
 					},
-                    &cli.StringFlag{
-                        Name:           "template",
-                        Aliases:        []string{"t"},
-                        Usage:          "Docker template path (URL, File Path, Default Templates[python, cpp])",
-                        Value:          "",
-                        DefaultText:    "",
-                    },
+					&cli.BoolFlag{
+						Name:    "force",
+						Aliases: []string{"f"},
+                        Usage:   "Force to create Dockerfile (WARNING: file can be overwritten)",
+					},
+					&cli.StringFlag{
+						Name:        "template",
+						Aliases:     []string{"t"},
+						Usage:       "Docker template path (URL, File Path, Default Templates[python, cpp])",
+						Value:       "",
+						DefaultText: "",
+					},
 				},
 				Action: func(cCtx *cli.Context) error {
 					initDockerfile(cCtx)
@@ -313,7 +334,7 @@ func main() {
 						Value:       "",
 						DefaultText: "",
 					},
-                },
+				},
 				Action: func(cCtx *cli.Context) error {
 					dockerBuild(cCtx, dockerTag)
 					return nil
@@ -337,6 +358,11 @@ func main() {
 						Usage:       "Shell type to run (bash, zsh, nosh)",
 						Value:       "zsh",
 						DefaultText: "zsh",
+					},
+					&cli.BoolFlag{
+						Name:    "mount-pwd",
+						Aliases: []string{"m"},
+                        Usage:   "Mount current directory to the container",
 					},
 					&cli.StringFlag{
 						Name:        "run-cmd",
@@ -371,7 +397,7 @@ func main() {
 			},
 		},
 		Action: func(cCtx *cli.Context) error {
-            cli.ShowAppHelp(cCtx)
+			cli.ShowAppHelp(cCtx)
 			return nil
 		},
 	}
