@@ -268,7 +268,7 @@ func main() {
 	dockerTag := fmt.Sprintf("%s/%s:%s", organizationName, projectName, osArchType)
 
 	app := &cli.App{
-		Name:     "hocker",
+		Name:     "ducker",
 		Version:  "0.1.1",
 		Compiled: time.Now(),
 		Authors: []*cli.Author{
@@ -278,7 +278,7 @@ func main() {
 			},
 		},
 		EnableBashCompletion: true,
-		Usage:                "Hocker the docker helper",
+		Usage:                "Ducker the docker helper",
 		Commands: []*cli.Command{
 			{
 				Name:    "init",
@@ -330,7 +330,7 @@ func main() {
 					&cli.StringFlag{
 						Name:        "args",
 						Aliases:     []string{"a"},
-						Usage:       "Extra arguments for docker build. ex) hocker build --args \"--build-arg TEST=true\"",
+						Usage:       "Extra arguments for docker build. ex) ducker build --args \"--build-arg TEST=true\"",
 						Value:       "",
 						DefaultText: "",
 					},
@@ -348,7 +348,7 @@ func main() {
 					&cli.StringFlag{
 						Name:        "docker-args",
 						Aliases:     []string{"da"},
-						Usage:       "Extra arguments for docker run. ex) hocker run --docker-args \"-v $PWD:/home/user/hocker\"",
+						Usage:       "Extra arguments for docker run. ex) ducker run --docker-args \"-v $PWD:/home/user/ducker\"",
 						Value:       "",
 						DefaultText: "",
 					},
