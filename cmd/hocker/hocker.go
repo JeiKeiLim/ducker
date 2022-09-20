@@ -1,16 +1,15 @@
 // Please refer to https://cli.urfave.org/v2
-
 package main
 
 import (
 	"bufio"
 	"fmt"
 	"log"
-    "time"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/thlib/go-timezone-local/tzlocal"
 	"github.com/urfave/cli/v2"
@@ -26,8 +25,9 @@ func checkError(err error) {
 func runTerminalCmd(cmd string, option string) string {
 	cmdRun, cmdOut := exec.Command(cmd, strings.Split(option, " ")...), new(strings.Builder)
 	cmdRun.Stdout = cmdOut
-	cmdRun.Run()
+	err := cmdRun.Run()
 
+	checkError(err)
 	return strings.TrimSpace(cmdOut.String())
 }
 
@@ -36,19 +36,21 @@ func getArchType() string {
 }
 
 func writeFile(contents string, path string, overwrite bool) bool {
-    _, err := os.Stat(path)
-    if !overwrite && err == nil {
-        fmt.Printf("%s already exist!\n", path)
-        return false
-    }
+	_, err := os.Stat(path)
+	if !overwrite && err == nil {
+		fmt.Printf("%s already exist!\n", path)
+		return false
+	}
 
 	fp, err := os.Create(path)
 	checkError(err)
 	write_buf := bufio.NewWriter(fp)
-	write_buf.WriteString(contents)
+	_, err = write_buf.WriteString(contents)
 	write_buf.Flush()
 
-    return true
+	checkError(err)
+
+	return true
 }
 
 func dockerBuild(ctx *cli.Context, dockerTag string) {
@@ -56,11 +58,16 @@ func dockerBuild(ctx *cli.Context, dockerTag string) {
 	if !strings.HasSuffix(dockerTag, "x86_64") {
 		dockerFilePath += "." + getArchType()
 	}
+	buildArgs := ctx.String("args")
 
 	buildCmd := "docker build . -t " + dockerTag
 	buildCmd += " -f " + dockerFilePath
 	buildCmd += " --build-arg UID=" + runTerminalCmd("id", "-u")
 	buildCmd += " --build-arg GID=" + runTerminalCmd("id", "-g")
+
+	if buildArgs != "" {
+		buildCmd += " " + buildArgs
+	}
 
 	cmdRun := exec.Command("/bin/sh", "-c", buildCmd)
 	cmdRun.Stdout = os.Stdout
@@ -71,17 +78,17 @@ func dockerBuild(ctx *cli.Context, dockerTag string) {
 
 func dockerRun(ctx *cli.Context, dockerTag string) {
 	dockerArgs := ctx.String("docker-args")
-    shellType := ctx.String("shell")
-    shellCmd := "/bin/bash"
-    dockerOpt := "-tid"
+	shellType := ctx.String("shell")
+    mountPWD := ctx.Bool("mount-pwd")
+	shellCmd := "/bin/bash"
+	dockerOpt := "-tid"
 
-    if shellType == "zsh" {
-        shellCmd = "/usr/bin/zsh"
-    } else if shellType == "nosh" {
-        shellCmd = ctx.String("run-cmd")
-        dockerOpt = "-ti"
-    }
-
+	if shellType == "zsh" {
+		shellCmd = "/usr/bin/zsh"
+	} else if shellType == "nosh" {
+		shellCmd = ctx.String("run-cmd")
+		dockerOpt = "-ti"
+	}
 
 	runCmd := "docker run --privileged " + dockerOpt
 	runCmd += " -e DISPLAY=" + os.Getenv("DISPLAY")
@@ -89,18 +96,35 @@ func dockerRun(ctx *cli.Context, dockerTag string) {
 	runCmd += " -v /tmp/.X11-unix:/tmp/.X11-unix:ro"
 	runCmd += " -v /dev:/dev"
 
-    // Mount if .gitconfig exists
-    gitConfigPath := filepath.Join(os.Getenv("HOME"), ".gitconfig")
-    if _, err := os.Stat(gitConfigPath); err == nil {
-        runCmd += " -v " + gitConfigPath + ":/home/user/.gitconfig"
+    if mountPWD {
+        mydir, err := os.Getwd()
+        if err != nil {
+            fmt.Println(err)
+        } else {
+            baseDir := filepath.Base(mydir)
+            projectName := strings.ToLower(baseDir)
+
+            runCmd += " -v " + mydir + ":/home/user/" + projectName
+        }
     }
+
+	// Add GPU option if NVIDIA driver exist
+	if _, err := os.Stat("/proc/driver/nvidia/version"); err == nil {
+		runCmd += " --gpus all"
+	}
+
+	// Mount if .gitconfig exists
+	gitConfigPath := filepath.Join(os.Getenv("HOME"), ".gitconfig")
+	if _, err := os.Stat(gitConfigPath); err == nil {
+		runCmd += " -v " + gitConfigPath + ":/home/user/.gitconfig"
+	}
 
 	runCmd += " --network host"
 	runCmd += " " + dockerArgs
 	runCmd += " " + dockerTag
 	runCmd += " " + shellCmd
 
-    fmt.Println(runCmd)
+	fmt.Println(runCmd)
 
 	cmdRun := exec.Command("/bin/sh", "-c", runCmd)
 	cmdRun.Stdout = os.Stdout
@@ -114,18 +138,18 @@ func dockerRun(ctx *cli.Context, dockerTag string) {
 	lastContainerID := runTerminalCmd("docker", "ps -qn 1")
 	writeFile(lastContainerID, ".last_exec_cont_id.txt", true)
 
-    if shellType != "nosh" {
-	    dockerExec(ctx)
-    }
+	if shellType != "nosh" {
+		dockerExec(ctx)
+	}
 }
 
 func dockerExec(ctx *cli.Context) {
-    shellType := ctx.String("shell")
-    shellCmd := "/bin/bash"
+	shellType := ctx.String("shell")
+	shellCmd := "/bin/bash"
 
-    if shellType == "zsh" {
-        shellCmd = "/usr/bin/zsh"
-    }
+	if shellType == "zsh" {
+		shellCmd = "/usr/bin/zsh"
+	}
 
 	lastContainerID := runTerminalCmd("tail", "-1 .last_exec_cont_id.txt")
 
@@ -139,12 +163,16 @@ func dockerExec(ctx *cli.Context) {
 	if err := cmdExec.Run(); err != nil {
 		fmt.Println(err)
 	}
-
 }
 
 func initDockerfile(ctx *cli.Context) {
 	name := ctx.String("name")
 	contact := ctx.String("contact")
+	template := ctx.String("template")
+    forceOverwrite := ctx.Bool("force")
+
+	fmt.Println(template)
+	templateContent := checkTemplates(template)
 
 	if !ctx.Bool("quite") {
 		reader := bufio.NewReader(os.Stdin)
@@ -168,11 +196,11 @@ func initDockerfile(ctx *cli.Context) {
 	tzname, _ := tzlocal.RuntimeTZ()
 
 	dockerBaseImage := "ubuntu:bionic"
-
 	dockerContents := fmt.Sprintf("FROM %s\n\n", dockerBaseImage)
 
-	dockerContents += fmt.Sprintf("LABEL maintainer=\"%s <%s>\"\n", name, contact)
-	dockerContents += fmt.Sprintf("ENV DEBIAN_FRONTEND=noninteractive\n")
+	dockerContents += fmt.Sprintf("LABEL maintainer=\"%s <%s>\"\n\n", name, contact)
+
+	dockerContents += "ENV DEBIAN_FRONTEND=noninteractive\n"
 	dockerContents += fmt.Sprintf("ENV TZ=%s\n", tzname)
 	dockerContents += "ENV TERM xterm-256color\n\n"
 
@@ -187,35 +215,44 @@ func initDockerfile(ctx *cli.Context) {
 	dockerContents += "WORKDIR /home/user\n"
 	dockerContents += "USER user\n\n"
 
+	dockerContents += "RUN sudo apt-get update && sudo apt-get install -y libgl1-mesa-dev && sudo apt-get -y install jq\n\n"
+
 	dockerContents += "ENV NVIDIA_VISIBLE_DEVICES ${NVIDIA_VISIBLE_DEVICES:-all}\n"
 	dockerContents += "ENV NVIDIA_DRIVER_CAPABILITIES ${NVIDIA_DRIVER_CAPABILITIES:+$NVIDIA_DRIVER_CAPABILITIES,}graphics\n\n"
 
-    dockerContents += "RUN sudo apt-get update && sudo apt-get -y install wget curl git\n"
-    dockerContents += "RUN curl -s https://raw.githubusercontent.com/JeiKeiLim/my_term/main/run.sh | /bin/bash\n\n"
+	dockerContents += "RUN sudo apt-get update && sudo apt-get -y install wget curl git\n"
+	dockerContents += "RUN curl -s https://raw.githubusercontent.com/JeiKeiLim/my_term/main/run.sh | /bin/bash\n\n"
 
-    dockerContents += "RUN sudo apt-get update && sudo apt-get install -y zsh && \\\n"
-    dockerContents += "    sh -c \"$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)\" \"\" --unattended && \\\n"
-    dockerContents += "    git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k\n"
-    dockerContents += "RUN echo \"\\n# Custom settings\" >> /home/user/.zshrc && \\\n"
-    dockerContents += "    echo \"export PATH=/home/user/.local/bin:$PATH\" >> /home/user/.zshrc && \\\n"
-    dockerContents += "    echo \"export LC_ALL=C.UTF-8 && export LANG=C.UTF-8\" >> /home/user/.zshrc && \\\n"
-    dockerContents += "    sed '11 c\\ZSH_THEME=powerlevel10k/powerlevel10k' ~/.zshrc  > tmp.txt && mv tmp.txt ~/.zshrc && \\\n"
-    dockerContents += "    echo 'POWERLEVEL9K_DISABLE_CONFIGURATION_WIZARD=true' >> ~/.zshrc\n\n"
+	dockerContents += "RUN sudo apt-get update && sudo apt-get install -y zsh && \\\n"
+	dockerContents += "    sh -c \"$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)\" \"\" --unattended && \\\n"
+	dockerContents += "    git clone --depth=1 https://github.com/romkatv/powerlevel10k.git ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k\n"
+	dockerContents += "RUN echo \"\\n# Custom settings\" >> /home/user/.zshrc && \\\n"
+	dockerContents += "    echo \"export PATH=/home/user/.local/bin:$PATH\" >> /home/user/.zshrc && \\\n"
+	dockerContents += "    echo \"export LC_ALL=C.UTF-8 && export LANG=C.UTF-8\" >> /home/user/.zshrc && \\\n"
+	dockerContents += "    sed '11 c\\ZSH_THEME=powerlevel10k/powerlevel10k' ~/.zshrc  > tmp.txt && mv tmp.txt ~/.zshrc && \\\n"
+	dockerContents += "    echo 'POWERLEVEL9K_DISABLE_CONFIGURATION_WIZARD=true' >> ~/.zshrc\n"
 
-	dockerContents += "# Place your environment here\n\n"
+	if templateContent != "" {
+		dockerContents += "\n"
+		dockerContents += templateContent
+	}
+	dockerContents += "\n# Place your environment here\n\n"
 
-	os.Mkdir("docker", os.ModePerm)
-
-    isSuccess1 := writeFile(dockerContents, "docker/Dockerfile", false)
-    isSuccess2 := writeFile(dockerContents, "docker/Dockerfile.aarch64", false)
-
-    if isSuccess1 && isSuccess2 {
-        fmt.Println("Success!")
-        fmt.Println("Dockerfile has been created in docker directory")
-    } else {
-        fmt.Println("Failed")
-        fmt.Println("Dockerfile already exist in docker directory")
+	err := os.Mkdir("docker", os.ModePerm)
+    if !forceOverwrite {
+        checkError(err)
     }
+
+	isSuccess1 := writeFile(dockerContents, "docker/Dockerfile", forceOverwrite)
+	isSuccess2 := writeFile(dockerContents, "docker/Dockerfile.aarch64", forceOverwrite)
+
+	if isSuccess1 && isSuccess2 {
+		fmt.Println("Success!")
+		fmt.Println("Dockerfile has been created in docker directory")
+	} else {
+		fmt.Println("Failed")
+		fmt.Println("Dockerfile already exist in docker directory")
+	}
 }
 
 func main() {
@@ -231,17 +268,17 @@ func main() {
 	dockerTag := fmt.Sprintf("%s/%s:%s", organizationName, projectName, osArchType)
 
 	app := &cli.App{
-		Name:  "hocker",
-        Version: "0.1.0",
-        Compiled: time.Now(),
-        Authors: []*cli.Author{
-            &cli.Author{
-                Name: "Jongkuk Lim",
-                Email: "lim.jeikei@gmail.com",
-            },
-        },
-        EnableBashCompletion: true,
-		Usage: "Hocker the docker helper",
+		Name:     "hocker",
+		Version:  "0.1.1",
+		Compiled: time.Now(),
+		Authors: []*cli.Author{
+			&cli.Author{
+				Name:  "Jongkuk Lim",
+				Email: "lim.jeikei@gmail.com",
+			},
+		},
+		EnableBashCompletion: true,
+		Usage:                "Hocker the docker helper",
 		Commands: []*cli.Command{
 			{
 				Name:    "init",
@@ -267,6 +304,18 @@ func main() {
 						Aliases: []string{"q"},
 						Usage:   "Do not use interactive mode",
 					},
+					&cli.BoolFlag{
+						Name:    "force",
+						Aliases: []string{"f"},
+                        Usage:   "Force to create Dockerfile (WARNING: file can be overwritten)",
+					},
+					&cli.StringFlag{
+						Name:        "template",
+						Aliases:     []string{"t"},
+						Usage:       "Docker template path (URL, File Path, Default Templates[python, cpp])",
+						Value:       "",
+						DefaultText: "",
+					},
 				},
 				Action: func(cCtx *cli.Context) error {
 					initDockerfile(cCtx)
@@ -277,6 +326,15 @@ func main() {
 				Name:    "build",
 				Aliases: []string{"b"},
 				Usage:   "Build docker image",
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:        "args",
+						Aliases:     []string{"a"},
+						Usage:       "Extra arguments for docker build. ex) hocker build --args \"--build-arg TEST=true\"",
+						Value:       "",
+						DefaultText: "",
+					},
+				},
 				Action: func(cCtx *cli.Context) error {
 					dockerBuild(cCtx, dockerTag)
 					return nil
@@ -286,29 +344,34 @@ func main() {
 				Name:    "run",
 				Aliases: []string{"r"},
 				Usage:   "Running docker image",
-                Flags: []cli.Flag{
-                    &cli.StringFlag {
-                        Name: "docker-args",
-                        Aliases: []string{"da"},
-                        Usage: "Extra arguments for docker run. ex) hocker run --docker-args \"-v $PWD:/home/user/hocker\"",
-                        Value: "",
-                        DefaultText: "",
-                    },
-                    &cli.StringFlag {
-                        Name: "shell",
-                        Aliases: []string{"s"},
-                        Usage: "Shell type to run (bash, zsh, nosh)",
-                        Value: "zsh",
-                        DefaultText: "zsh",
-                    },
-                    &cli.StringFlag {
-                        Name: "run-cmd",
-                        Aliases: []string{"r"},
-                        Usage: "Running command (only applies when shell=nosh)",
-                        Value: "",
-                        DefaultText: "",
-                    },
-                },
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:        "docker-args",
+						Aliases:     []string{"da"},
+						Usage:       "Extra arguments for docker run. ex) hocker run --docker-args \"-v $PWD:/home/user/hocker\"",
+						Value:       "",
+						DefaultText: "",
+					},
+					&cli.StringFlag{
+						Name:        "shell",
+						Aliases:     []string{"s"},
+						Usage:       "Shell type to run (bash, zsh, nosh)",
+						Value:       "zsh",
+						DefaultText: "zsh",
+					},
+					&cli.BoolFlag{
+						Name:    "mount-pwd",
+						Aliases: []string{"m"},
+                        Usage:   "Mount current directory to the container",
+					},
+					&cli.StringFlag{
+						Name:        "run-cmd",
+						Aliases:     []string{"r"},
+						Usage:       "Running command (only applies when shell=nosh)",
+						Value:       "",
+						DefaultText: "",
+					},
+				},
 				Action: func(cCtx *cli.Context) error {
 					dockerRun(cCtx, dockerTag)
 					return nil
@@ -318,15 +381,15 @@ func main() {
 				Name:    "exec",
 				Aliases: []string{"r"},
 				Usage:   "Executing the docker container",
-                Flags: []cli.Flag{
-                    &cli.StringFlag {
-                        Name: "shell",
-                        Aliases: []string{"s"},
-                        Usage: "Shell type to run (bash, zsh)",
-                        Value: "zsh",
-                        DefaultText: "zsh",
-                    },
-                },
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:        "shell",
+						Aliases:     []string{"s"},
+						Usage:       "Shell type to run (bash, zsh)",
+						Value:       "zsh",
+						DefaultText: "zsh",
+					},
+				},
 				Action: func(cCtx *cli.Context) error {
 					dockerExec(cCtx)
 					return nil
@@ -334,7 +397,7 @@ func main() {
 			},
 		},
 		Action: func(cCtx *cli.Context) error {
-			fmt.Printf("Hello %q", cCtx.Args().Get(0))
+			cli.ShowAppHelp(cCtx)
 			return nil
 		},
 	}
