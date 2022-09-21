@@ -25,7 +25,7 @@ You can insert cutom template dockerfile.
 $ ducker init -t python
 ```
 
-This will put (templates/python.Dockerfile)[templates/python.Dockerfile] contents after [docker/Dockerfile](docker/Dockerfile). 
+This will put [templates/python.Dockerfile](templates/python.Dockerfile) contents after [docker/Dockerfile](docker/Dockerfile). 
 
 
 ## Build
