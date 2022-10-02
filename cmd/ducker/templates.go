@@ -4,24 +4,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"net/http"
 	"os"
 )
-
-func getContentFromURL(url string) string {
-	resp, err := http.Get(url)
-
-	if err != nil {
-		return ""
-	} else {
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return ""
-		} else {
-			return string(body)
-		}
-	}
-}
 
 func checkTemplates(template string) string {
 	defaultTemplate := make(map[string]string)

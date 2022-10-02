@@ -15,59 +15,27 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-func checkError(err error) {
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-}
-
-func runTerminalCmd(cmd string, option string) string {
-	cmdRun, cmdOut := exec.Command(cmd, strings.Split(option, " ")...), new(strings.Builder)
-	cmdRun.Stdout = cmdOut
-	err := cmdRun.Run()
-
-	checkError(err)
-	return strings.TrimSpace(cmdOut.String())
-}
-
-func getArchType() string {
-	return runTerminalCmd("uname", "-m")
-}
-
-func writeFile(contents string, path string, overwrite bool) bool {
-	_, err := os.Stat(path)
-	if !overwrite && err == nil {
-		fmt.Printf("%s already exist!\n", path)
-		return false
-	}
-
-	fp, err := os.Create(path)
-	checkError(err)
-	write_buf := bufio.NewWriter(fp)
-	_, err = write_buf.WriteString(contents)
-	write_buf.Flush()
-
-	checkError(err)
-
-	return true
-}
+// Cross compile options
+// env GOOS=darwin GOARCH=arm64 go build ./cmd/ducker
 
 func dockerBuild(ctx *cli.Context, dockerTag string) {
 	dockerFilePath := "docker/Dockerfile"
 	if !strings.HasSuffix(dockerTag, "x86_64") {
 		dockerFilePath += "." + getArchType()
 	}
+	localConfig := readDefaultLocalConfig()
+
 	buildArgs := ctx.String("args")
 
 	buildCmd := "docker build . -t " + dockerTag
 	buildCmd += " -f " + dockerFilePath
-	buildCmd += " --build-arg UID=" + runTerminalCmd("id", "-u")
-	buildCmd += " --build-arg GID=" + runTerminalCmd("id", "-g")
+	buildCmd += " " + localConfig.GetBuildArg()
 
 	if buildArgs != "" {
 		buildCmd += " " + buildArgs
 	}
+
+	fmt.Println(buildCmd)
 
 	cmdRun := exec.Command("/bin/sh", "-c", buildCmd)
 	cmdRun.Stdout = os.Stdout
@@ -77,11 +45,18 @@ func dockerBuild(ctx *cli.Context, dockerTag string) {
 }
 
 func dockerRun(ctx *cli.Context, dockerTag string) {
+
 	dockerArgs := ctx.String("docker-args")
 	shellType := ctx.String("shell")
-    mountPWD := ctx.Bool("mount-pwd")
+	mountPWD := ctx.Bool("mount-pwd")
 	shellCmd := "/bin/bash"
 	dockerOpt := "-tid"
+
+	runOption := ""
+	localConfig := readDefaultLocalConfig()
+	if !localConfig.IsEmpty() {
+		runOption += localConfig.GetRunArg()
+	}
 
 	if shellType == "zsh" {
 		shellCmd = "/usr/bin/zsh"
@@ -90,23 +65,20 @@ func dockerRun(ctx *cli.Context, dockerTag string) {
 		dockerOpt = "-ti"
 	}
 
-	runCmd := "docker run --privileged " + dockerOpt
-	runCmd += " -e DISPLAY=" + os.Getenv("DISPLAY")
-	runCmd += " -e TERM=xterm-256color"
-	runCmd += " -v /tmp/.X11-unix:/tmp/.X11-unix:ro"
-	runCmd += " -v /dev:/dev"
+	runCmd := "docker run " + dockerOpt + " "
+	runCmd += runOption
 
-    if mountPWD {
-        mydir, err := os.Getwd()
-        if err != nil {
-            fmt.Println(err)
-        } else {
-            baseDir := filepath.Base(mydir)
-            projectName := strings.ToLower(baseDir)
+	if mountPWD || localConfig.Mount_PWD {
+		mydir, err := os.Getwd()
+		if err != nil {
+			fmt.Println(err)
+		} else {
+			baseDir := filepath.Base(mydir)
+			projectName := strings.ToLower(baseDir)
 
-            runCmd += " -v " + mydir + ":/home/user/" + projectName
-        }
-    }
+			runCmd += " -v " + mydir + ":/home/user/" + projectName
+		}
+	}
 
 	// Add GPU option if NVIDIA driver exist
 	if _, err := os.Stat("/proc/driver/nvidia/version"); err == nil {
@@ -119,7 +91,6 @@ func dockerRun(ctx *cli.Context, dockerTag string) {
 		runCmd += " -v " + gitConfigPath + ":/home/user/.gitconfig"
 	}
 
-	runCmd += " --network host"
 	runCmd += " " + dockerArgs
 	runCmd += " " + dockerTag
 	runCmd += " " + shellCmd
@@ -166,18 +137,29 @@ func dockerExec(ctx *cli.Context) {
 }
 
 func initDockerfile(ctx *cli.Context) {
+	organization := ctx.String("organization")
 	name := ctx.String("name")
 	contact := ctx.String("contact")
 	template := ctx.String("template")
-    forceOverwrite := ctx.Bool("force")
+	forceOverwrite := ctx.Bool("force")
 
 	fmt.Println(template)
 	templateContent := checkTemplates(template)
 
-	if !ctx.Bool("quite") {
+	globalConfig := readDefaultGlobalConfig()
+	if !ctx.Bool("quite") && globalConfig.IsEmpty() {
 		reader := bufio.NewReader(os.Stdin)
-		fmt.Printf("Enter your name(Default: %s): ", name)
+
+		fmt.Printf("Enter your organization name(Default: %s): ", organization)
 		keyIn, err := reader.ReadString('\n')
+		checkError(err)
+		if strings.TrimSpace(keyIn) != "" {
+			organization = keyIn
+		}
+		organization = strings.TrimSpace(organization)
+
+		fmt.Printf("Enter your name(Default: %s): ", name)
+		keyIn, err = reader.ReadString('\n')
 		checkError(err)
 		if strings.TrimSpace(keyIn) != "" {
 			name = keyIn
@@ -193,13 +175,23 @@ func initDockerfile(ctx *cli.Context) {
 		contact = strings.TrimSpace(contact)
 	}
 
+	if globalConfig.IsEmpty() {
+		globalConfig.Organization = organization
+		globalConfig.Name = name
+		globalConfig.Contact = contact
+	}
+
 	tzname, _ := tzlocal.RuntimeTZ()
 
+	// TODO(jeikeilim): Add custom base image support
 	dockerBaseImage := "ubuntu:bionic"
 	dockerContents := fmt.Sprintf("FROM %s\n\n", dockerBaseImage)
 
-	dockerContents += fmt.Sprintf("LABEL maintainer=\"%s <%s>\"\n\n", name, contact)
+	dockerContents += fmt.Sprintf("LABEL maintainer=\"%s <%s>\"\n\n",
+		globalConfig.Name,
+		globalConfig.Contact)
 
+	// TODO(jeikeilim): Modify below to use base Dockerfile
 	dockerContents += "ENV DEBIAN_FRONTEND=noninteractive\n"
 	dockerContents += fmt.Sprintf("ENV TZ=%s\n", tzname)
 	dockerContents += "ENV TERM xterm-256color\n\n"
@@ -239,9 +231,9 @@ func initDockerfile(ctx *cli.Context) {
 	dockerContents += "\n# Place your environment here\n\n"
 
 	err := os.Mkdir("docker", os.ModePerm)
-    if !forceOverwrite {
-        checkError(err)
-    }
+	if !forceOverwrite {
+		checkError(err)
+	}
 
 	isSuccess1 := writeFile(dockerContents, "docker/Dockerfile", forceOverwrite)
 	isSuccess2 := writeFile(dockerContents, "docker/Dockerfile.aarch64", forceOverwrite)
@@ -253,6 +245,9 @@ func initDockerfile(ctx *cli.Context) {
 		fmt.Println("Failed")
 		fmt.Println("Dockerfile already exist in docker directory")
 	}
+
+	globalConfig.Write()
+	writeDefaultLocalConfig()
 }
 
 func main() {
@@ -266,10 +261,19 @@ func main() {
 
 	osArchType := getArchType()
 	dockerTag := fmt.Sprintf("%s/%s:%s", organizationName, projectName, osArchType)
+	const duckIcon = `
+
+=====================================
+     __           __           __  
+ ___( o)>     ___( o)>     ___( o)>
+ \ <_. )      \ <_. )      \ <_. ) 
+  '---'        '---'        '---'  
+=====================================
+    `
 
 	app := &cli.App{
 		Name:     "ducker",
-		Version:  "0.1.1",
+		Version:  "0.1.2",
 		Compiled: time.Now(),
 		Authors: []*cli.Author{
 			&cli.Author{
@@ -278,7 +282,7 @@ func main() {
 			},
 		},
 		EnableBashCompletion: true,
-		Usage:                "Ducker the docker helper",
+		Usage:                "Ducker the docker helper" + duckIcon,
 		Commands: []*cli.Command{
 			{
 				Name:    "init",
@@ -299,6 +303,13 @@ func main() {
 						Value:       "None",
 						DefaultText: "None",
 					},
+					&cli.StringFlag{
+						Name:        "organization",
+						Aliases:     []string{"o"},
+						Usage:       "Organization name",
+						Value:       "None",
+						DefaultText: "None",
+					},
 					&cli.BoolFlag{
 						Name:    "quite",
 						Aliases: []string{"q"},
@@ -307,7 +318,7 @@ func main() {
 					&cli.BoolFlag{
 						Name:    "force",
 						Aliases: []string{"f"},
-                        Usage:   "Force to create Dockerfile (WARNING: file can be overwritten)",
+						Usage:   "Force to create Dockerfile (WARNING: file can be overwritten)",
 					},
 					&cli.StringFlag{
 						Name:        "template",
@@ -362,7 +373,7 @@ func main() {
 					&cli.BoolFlag{
 						Name:    "mount-pwd",
 						Aliases: []string{"m"},
-                        Usage:   "Mount current directory to the container",
+						Usage:   "Mount current directory to the container",
 					},
 					&cli.StringFlag{
 						Name:        "run-cmd",
