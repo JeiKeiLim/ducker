@@ -39,9 +39,9 @@ func writeFile(contents string, path string, overwrite bool) bool {
 
 	fp, err := os.Create(path)
 	checkError(err)
-	write_buf := bufio.NewWriter(fp)
-	_, err = write_buf.WriteString(contents)
-	write_buf.Flush()
+	writeBuf := bufio.NewWriter(fp)
+	_, err = writeBuf.WriteString(contents)
+	writeBuf.Flush()
 
 	checkError(err)
 
@@ -53,31 +53,31 @@ func getContentFromURL(url string) string {
 
 	if err != nil {
 		return ""
-	} else {
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return ""
-		} else {
-			return string(body)
-		}
 	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return ""
+	}
+
+	return string(body)
 }
 
 func asksAreYouSure(msg string) bool {
-    reader := bufio.NewReader(os.Stdin)
+	reader := bufio.NewReader(os.Stdin)
 
-    for true {
-        fmt.Printf("%s (y/n) ", msg)
-        keyIn, err := reader.ReadString('\n')
-        checkError(err)
-        keyIn = strings.TrimSpace(keyIn)
-        keyIn = strings.ToLower(keyIn)
-        if  keyIn == "y" || keyIn == "yes" {
-            return true
-        } else if keyIn == "n" || keyIn == "no" {
-            return false
-        }
-    }
+	for true {
+		fmt.Printf("%s (y/n) ", msg)
+		keyIn, err := reader.ReadString('\n')
+		checkError(err)
+		keyIn = strings.TrimSpace(keyIn)
+		keyIn = strings.ToLower(keyIn)
+		if keyIn == "y" || keyIn == "yes" {
+			return true
+		} else if keyIn == "n" || keyIn == "no" {
+			return false
+		}
+	}
 
-    return false
+	return false
 }

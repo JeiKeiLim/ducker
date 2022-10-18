@@ -25,30 +25,30 @@ func checkTemplates(template string) string {
 		if err != nil {
 			log.Fatal(err)
 		}
+
 		return string(content)
+	}
+	// Check URL exist.
+	urlContent := getContentFromURL(template)
+
+	if urlContent != "" {
+		fmt.Print("Template successfully read from ")
+		fmt.Println(template)
+		return urlContent
+	}
+
+	// Check if template name has default setting
+	defaultURL := defaultTemplate[template]
+	if defaultURL == "" {
+		log.Println("Template can not be found")
 	} else {
-		// Check URL exist.
-		urlContent := getContentFromURL(template)
+		urlContent = getContentFromURL(defaultURL)
 
 		if urlContent != "" {
 			fmt.Print("Template successfully read from ")
-			fmt.Println(template)
+			log.Println(defaultURL)
+
 			return urlContent
-		}
-
-		// Check if template name has default setting
-		defaultURL := defaultTemplate[template]
-		if defaultURL == "" {
-			log.Println("Template can not be found")
-		} else {
-			urlContent = getContentFromURL(defaultURL)
-
-			if urlContent != "" {
-				fmt.Print("Template successfully read from ")
-				log.Println(defaultURL)
-
-				return urlContent
-			}
 		}
 	}
 

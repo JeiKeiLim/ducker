@@ -18,35 +18,35 @@ import (
 // env GOOS=darwin GOARCH=arm64 go build ./cmd/ducker
 
 func duckerConfig(ctx *cli.Context) {
-    // TODO(jeikeilim): add more flexible setting options
-    genGlobal := ctx.Bool("global")
-    genLocal := ctx.Bool("local")
+	// TODO(jeikeilim): add more flexible setting options
+	genGlobal := ctx.Bool("global")
+	genLocal := ctx.Bool("local")
 
-    if genGlobal {
-        doWrite := true
-        defaultGlobalConfig := getDefaultGlobalConfig("", "", "")
+	if genGlobal {
+		doWrite := true
+		defaultGlobalConfig := getDefaultGlobalConfig("", "", "")
 
-        if _, err := os.Stat(getDefaultGlobalConfigPath()); err == nil {
-            doWrite = asksAreYouSure("Ducker global config file already exists at " + getDefaultGlobalConfigPath() + " Do you want to OVERWRITE?")
-        }
-        if doWrite {
-            defaultGlobalConfig.Write(getDefaultGlobalConfigPath())
-            fmt.Println("Global config has been written in", getDefaultGlobalConfigPath())
-        }
-    }
+		if _, err := os.Stat(getDefaultGlobalConfigPath()); err == nil {
+			doWrite = asksAreYouSure("Ducker global config file already exists at " + getDefaultGlobalConfigPath() + " Do you want to OVERWRITE?")
+		}
+		if doWrite {
+			defaultGlobalConfig.Write(getDefaultGlobalConfigPath())
+			fmt.Println("Global config has been written in", getDefaultGlobalConfigPath())
+		}
+	}
 
-    if genLocal {
-        doWrite := true
-        defaultLocalConfig := getDefaultLocalConfig()
-        if _, err := os.Stat(getDefaultLocalConfigPath()); err == nil {
-            doWrite = asksAreYouSure("Ducker local config file already exists at " + getDefaultLocalConfigPath() + " Do you want to OVERWRITE?")
-        }
+	if genLocal {
+		doWrite := true
+		defaultLocalConfig := getDefaultLocalConfig()
+		if _, err := os.Stat(getDefaultLocalConfigPath()); err == nil {
+			doWrite = asksAreYouSure("Ducker local config file already exists at " + getDefaultLocalConfigPath() + " Do you want to OVERWRITE?")
+		}
 
-        if doWrite {
-            defaultLocalConfig.Write(getDefaultLocalConfigPath())
-            fmt.Println("Local config has been written in", getDefaultLocalConfigPath())
-        }   
-    }
+		if doWrite {
+			defaultLocalConfig.Write(getDefaultLocalConfigPath())
+			fmt.Println("Local config has been written in", getDefaultLocalConfigPath())
+		}
+	}
 }
 
 func dockerBuild(ctx *cli.Context, dockerTag string) {
@@ -137,10 +137,10 @@ func dockerRun(ctx *cli.Context, dockerTag string) {
 		fmt.Println(err)
 	}
 
-    // TODO(jeikeilim): It's bad idea to check last container ID with docker ps -qn 1
+	// TODO(jeikeilim): It's bad idea to check last container ID with docker ps -qn 1
 	lastContainerID := runTerminalCmd("docker", "ps -qn 1")
-    localConfig.LastExecID = lastContainerID
-    localConfig.Write(getDefaultLocalConfigPath())
+	localConfig.LastExecID = lastContainerID
+	localConfig.Write(getDefaultLocalConfigPath())
 
 	if shellType != "nosh" {
 		dockerExec(ctx)
@@ -148,7 +148,7 @@ func dockerRun(ctx *cli.Context, dockerTag string) {
 }
 
 func dockerExec(ctx *cli.Context) {
-    localConfig := readDefaultLocalConfig()
+	localConfig := readDefaultLocalConfig()
 
 	shellType := ctx.String("shell")
 	shellCmd := "/bin/bash"
@@ -159,10 +159,10 @@ func dockerExec(ctx *cli.Context) {
 
 	lastContainerID := localConfig.LastExecID
 
-    if lastContainerID == "" {
-        fmt.Println("Last container ID can not be found.")
-        return
-    }
+	if lastContainerID == "" {
+		fmt.Println("Last container ID can not be found.")
+		return
+	}
 
 	execCmd := "docker exec -ti " + lastContainerID
 	execCmd += " " + shellCmd
@@ -189,10 +189,10 @@ func initDockerfile(ctx *cli.Context) {
 	globalConfig := readDefaultGlobalConfig()
 
 	if !ctx.Bool("quite") && globalConfig.IsEmpty() {
-        globalConfig = getDefaultGlobalConfig("", "", "")
-    } else if ctx.Bool("quite") && globalConfig.IsEmpty() {
-        globalConfig = getDefaultGlobalConfig(organization, name, contact)
-    }
+		globalConfig = getDefaultGlobalConfig("", "", "")
+	} else if ctx.Bool("quite") && globalConfig.IsEmpty() {
+		globalConfig = getDefaultGlobalConfig(organization, name, contact)
+	}
 
 	tzname, _ := tzlocal.RuntimeTZ()
 
@@ -268,13 +268,13 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 	}
-    globalConfig := readDefaultGlobalConfig()
+	globalConfig := readDefaultGlobalConfig()
 	organizationName := "jeikeilim"
 
-    if !globalConfig.IsEmpty() {
-        organizationName = globalConfig.Organization
-    }
-    
+	if !globalConfig.IsEmpty() {
+		organizationName = globalConfig.Organization
+	}
+
 	baseDir := filepath.Base(mydir)
 	projectName := strings.ToLower(baseDir)
 
@@ -425,11 +425,11 @@ func main() {
 					return nil
 				},
 			},
-            {
-                Name:   "config",
-                Aliases: []string{"c"},
-                Usage:  "Ducker config file generation",
-                Flags: []cli.Flag{
+			{
+				Name:    "config",
+				Aliases: []string{"c"},
+				Usage:   "Ducker config file generation",
+				Flags: []cli.Flag{
 					&cli.BoolFlag{
 						Name:    "global",
 						Aliases: []string{"g"},
@@ -440,12 +440,12 @@ func main() {
 						Aliases: []string{"l"},
 						Usage:   "Generate local config file at $PWD/.ducker.yaml",
 					},
-                },
+				},
 				Action: func(cCtx *cli.Context) error {
 					duckerConfig(cCtx)
 					return nil
 				},
-            },
+			},
 		},
 		Action: func(cCtx *cli.Context) error {
 			cli.ShowAppHelp(cCtx)
