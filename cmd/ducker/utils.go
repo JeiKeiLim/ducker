@@ -62,3 +62,22 @@ func getContentFromURL(url string) string {
 		}
 	}
 }
+
+func asksAreYouSure(msg string) bool {
+    reader := bufio.NewReader(os.Stdin)
+
+    for true {
+        fmt.Printf("%s (y/n) ", msg)
+        keyIn, err := reader.ReadString('\n')
+        checkError(err)
+        keyIn = strings.TrimSpace(keyIn)
+        keyIn = strings.ToLower(keyIn)
+        if  keyIn == "y" || keyIn == "yes" {
+            return true
+        } else if keyIn == "n" || keyIn == "no" {
+            return false
+        }
+    }
+
+    return false
+}

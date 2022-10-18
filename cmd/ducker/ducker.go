@@ -23,15 +23,29 @@ func duckerConfig(ctx *cli.Context) {
     genLocal := ctx.Bool("local")
 
     if genGlobal {
+        doWrite := true
         defaultGlobalConfig := getDefaultGlobalConfig("", "", "")
-        defaultGlobalConfig.Write(getDefaultGlobalConfigPath())
-        fmt.Println("Global config has been written in %s", getDefaultGlobalConfigPath())
+
+        if _, err := os.Stat(getDefaultGlobalConfigPath()); err == nil {
+            doWrite = asksAreYouSure("Ducker global config file already exists at " + getDefaultGlobalConfigPath() + " Do you want to OVERWRITE?")
+        }
+        if doWrite {
+            defaultGlobalConfig.Write(getDefaultGlobalConfigPath())
+            fmt.Println("Global config has been written in", getDefaultGlobalConfigPath())
+        }
     }
 
     if genLocal {
+        doWrite := true
         defaultLocalConfig := getDefaultLocalConfig()
-        defaultLocalConfig.Write(getDefaultLocalConfigPath())
-        fmt.Println("Local config has been written in %s", getDefaultLocalConfigPath())
+        if _, err := os.Stat(getDefaultLocalConfigPath()); err == nil {
+            doWrite = asksAreYouSure("Ducker local config file already exists at " + getDefaultLocalConfigPath() + " Do you want to OVERWRITE?")
+        }
+
+        if doWrite {
+            defaultLocalConfig.Write(getDefaultLocalConfigPath())
+            fmt.Println("Local config has been written in", getDefaultLocalConfigPath())
+        }   
     }
 }
 
