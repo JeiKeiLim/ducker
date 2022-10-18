@@ -2,7 +2,6 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	"log"
 	"os"
@@ -17,6 +16,24 @@ import (
 
 // Cross compile options
 // env GOOS=darwin GOARCH=arm64 go build ./cmd/ducker
+
+func duckerConfig(ctx *cli.Context) {
+    // TODO(jeikeilim): add more flexible setting options
+    genGlobal := ctx.Bool("global")
+    genLocal := ctx.Bool("local")
+
+    if genGlobal {
+        defaultGlobalConfig := getDefaultGlobalConfig("", "", "")
+        defaultGlobalConfig.Write(getDefaultGlobalConfigPath())
+        fmt.Println("Global config has been written in %s", getDefaultGlobalConfigPath())
+    }
+
+    if genLocal {
+        defaultLocalConfig := getDefaultLocalConfig()
+        defaultLocalConfig.Write(getDefaultLocalConfigPath())
+        fmt.Println("Local config has been written in %s", getDefaultLocalConfigPath())
+    }
+}
 
 func dockerBuild(ctx *cli.Context, dockerTag string) {
 	dockerFilePath := "docker/Dockerfile"
@@ -106,8 +123,10 @@ func dockerRun(ctx *cli.Context, dockerTag string) {
 		fmt.Println(err)
 	}
 
+    // TODO(jeikeilim): It's bad idea to check last container ID with docker ps -qn 1
 	lastContainerID := runTerminalCmd("docker", "ps -qn 1")
-	writeFile(lastContainerID, ".last_exec_cont_id.txt", true)
+    localConfig.LastExecID = lastContainerID
+    localConfig.Write(getDefaultLocalConfigPath())
 
 	if shellType != "nosh" {
 		dockerExec(ctx)
@@ -115,6 +134,8 @@ func dockerRun(ctx *cli.Context, dockerTag string) {
 }
 
 func dockerExec(ctx *cli.Context) {
+    localConfig := readDefaultLocalConfig()
+
 	shellType := ctx.String("shell")
 	shellCmd := "/bin/bash"
 
@@ -122,7 +143,12 @@ func dockerExec(ctx *cli.Context) {
 		shellCmd = "/usr/bin/zsh"
 	}
 
-	lastContainerID := runTerminalCmd("tail", "-1 .last_exec_cont_id.txt")
+	lastContainerID := localConfig.LastExecID
+
+    if lastContainerID == "" {
+        fmt.Println("Last container ID can not be found.")
+        return
+    }
 
 	execCmd := "docker exec -ti " + lastContainerID
 	execCmd += " " + shellCmd
@@ -147,39 +173,12 @@ func initDockerfile(ctx *cli.Context) {
 	templateContent := checkTemplates(template)
 
 	globalConfig := readDefaultGlobalConfig()
+
 	if !ctx.Bool("quite") && globalConfig.IsEmpty() {
-		reader := bufio.NewReader(os.Stdin)
-
-		fmt.Printf("Enter your organization name(Default: %s): ", organization)
-		keyIn, err := reader.ReadString('\n')
-		checkError(err)
-		if strings.TrimSpace(keyIn) != "" {
-			organization = keyIn
-		}
-		organization = strings.TrimSpace(organization)
-
-		fmt.Printf("Enter your name(Default: %s): ", name)
-		keyIn, err = reader.ReadString('\n')
-		checkError(err)
-		if strings.TrimSpace(keyIn) != "" {
-			name = keyIn
-		}
-		name = strings.TrimSpace(name)
-
-		fmt.Printf("Enter contact address (Default: %s): ", contact)
-		keyIn, err = reader.ReadString('\n')
-		checkError(err)
-		if strings.TrimSpace(keyIn) != "" {
-			contact = keyIn
-		}
-		contact = strings.TrimSpace(contact)
-	}
-
-	if globalConfig.IsEmpty() {
-		globalConfig.Organization = organization
-		globalConfig.Name = name
-		globalConfig.Contact = contact
-	}
+        globalConfig = getDefaultGlobalConfig("", "", "")
+    } else if ctx.Bool("quite") && globalConfig.IsEmpty() {
+        globalConfig = getDefaultGlobalConfig(organization, name, contact)
+    }
 
 	tzname, _ := tzlocal.RuntimeTZ()
 
@@ -246,7 +245,7 @@ func initDockerfile(ctx *cli.Context) {
 		fmt.Println("Dockerfile already exist in docker directory")
 	}
 
-	globalConfig.Write()
+	globalConfig.Write(getDefaultGlobalConfigPath())
 	writeDefaultLocalConfig()
 }
 
@@ -255,7 +254,13 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 	}
+    globalConfig := readDefaultGlobalConfig()
 	organizationName := "jeikeilim"
+
+    if !globalConfig.IsEmpty() {
+        organizationName = globalConfig.Organization
+    }
+    
 	baseDir := filepath.Base(mydir)
 	projectName := strings.ToLower(baseDir)
 
@@ -406,6 +411,27 @@ func main() {
 					return nil
 				},
 			},
+            {
+                Name:   "config",
+                Aliases: []string{"c"},
+                Usage:  "Ducker config file generation",
+                Flags: []cli.Flag{
+					&cli.BoolFlag{
+						Name:    "global",
+						Aliases: []string{"g"},
+						Usage:   "Generate global config file at $HOME/.ducker_global.yaml",
+					},
+					&cli.BoolFlag{
+						Name:    "local",
+						Aliases: []string{"l"},
+						Usage:   "Generate local config file at $PWD/.ducker.yaml",
+					},
+                },
+				Action: func(cCtx *cli.Context) error {
+					duckerConfig(cCtx)
+					return nil
+				},
+            },
 		},
 		Action: func(cCtx *cli.Context) error {
 			cli.ShowAppHelp(cCtx)
