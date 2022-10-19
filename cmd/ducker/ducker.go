@@ -176,6 +176,26 @@ func dockerExec(ctx *cli.Context) {
 	}
 }
 
+func dockerPs(ctx *cli.Context) {
+    cmdPs := exec.Command("/bin/sh", "-c", "docker ps")
+    cmdPs.Stdout = os.Stdout
+    cmdPs.Stderr = os.Stderr
+    cmdPs.Stdin = os.Stdin
+	if err := cmdPs.Run(); err != nil {
+		fmt.Println(err)
+	}
+}
+
+func dockerLs(ctx *cli.Context) {
+    cmdLs := exec.Command("/bin/sh", "-c", "docker images")
+    cmdLs.Stdout = os.Stdout
+    cmdLs.Stderr = os.Stderr
+    cmdLs.Stdin = os.Stdin
+	if err := cmdLs.Run(); err != nil {
+		fmt.Println(err)
+	}
+}
+
 func initDockerfile(ctx *cli.Context) {
 	organization := ctx.String("organization")
 	name := ctx.String("name")
@@ -445,6 +465,23 @@ func main() {
 					duckerConfig(cCtx)
 					return nil
 				},
+            },
+            {
+                Name: "ps",
+                Usage: "Check docker container that is running now",
+                Action: func(cCtx *cli.Context) error {
+                    dockerPs(cCtx)
+                    return nil
+                },
+            },
+            {
+                Name: "images",
+                Aliases: []string{"ls"},
+                Usage: "Check existing docker images",
+                Action: func(cCtx *cli.Context) error {
+                    dockerLs(cCtx)
+                    return nil
+                },
             },
 		},
 		Action: func(cCtx *cli.Context) error {
