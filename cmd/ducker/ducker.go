@@ -17,35 +17,35 @@ import (
 // env GOOS=darwin GOARCH=arm64 go build ./cmd/ducker
 
 func duckerConfig(ctx *cli.Context) {
-    // TODO(jeikeilim): add more flexible setting options
-    genGlobal := ctx.Bool("global")
-    genLocal := ctx.Bool("local")
+	// TODO(jeikeilim): add more flexible setting options
+	genGlobal := ctx.Bool("global")
+	genLocal := ctx.Bool("local")
 
-    if genGlobal {
-        doWrite := true
-        defaultGlobalConfig := getDefaultGlobalConfig("", "", "")
+	if genGlobal {
+		doWrite := true
+		defaultGlobalConfig := getDefaultGlobalConfig("", "", "")
 
-        if _, err := os.Stat(getDefaultGlobalConfigPath()); err == nil {
-            doWrite = asksAreYouSure("Ducker global config file already exists at " + getDefaultGlobalConfigPath() + " Do you want to OVERWRITE?")
-        }
-        if doWrite {
-            defaultGlobalConfig.Write(getDefaultGlobalConfigPath())
-            fmt.Println("Global config has been written in", getDefaultGlobalConfigPath())
-        }
-    }
+		if _, err := os.Stat(getDefaultGlobalConfigPath()); err == nil {
+			doWrite = asksAreYouSure("Ducker global config file already exists at " + getDefaultGlobalConfigPath() + " Do you want to OVERWRITE?")
+		}
+		if doWrite {
+			defaultGlobalConfig.Write(getDefaultGlobalConfigPath())
+			fmt.Println("Global config has been written in", getDefaultGlobalConfigPath())
+		}
+	}
 
-    if genLocal {
-        doWrite := true
-        defaultLocalConfig := getDefaultLocalConfig()
-        if _, err := os.Stat(getDefaultLocalConfigPath()); err == nil {
-            doWrite = asksAreYouSure("Ducker local config file already exists at " + getDefaultLocalConfigPath() + " Do you want to OVERWRITE?")
-        }
+	if genLocal {
+		doWrite := true
+		defaultLocalConfig := getDefaultLocalConfig()
+		if _, err := os.Stat(getDefaultLocalConfigPath()); err == nil {
+			doWrite = asksAreYouSure("Ducker local config file already exists at " + getDefaultLocalConfigPath() + " Do you want to OVERWRITE?")
+		}
 
-        if doWrite {
-            defaultLocalConfig.Write(getDefaultLocalConfigPath())
-            fmt.Println("Local config has been written in", getDefaultLocalConfigPath())
-        }   
-    }
+		if doWrite {
+			defaultLocalConfig.Write(getDefaultLocalConfigPath())
+			fmt.Println("Local config has been written in", getDefaultLocalConfigPath())
+		}
+	}
 }
 
 func dockerBuild(ctx *cli.Context, dockerTag string) {
@@ -66,17 +66,11 @@ func dockerBuild(ctx *cli.Context, dockerTag string) {
 	}
 
 	fmt.Println(buildCmd)
-    
-    runCommandInShell(buildCmd)
-	// cmdRun := exec.Command("/bin/sh", "-c", buildCmd)
-	// cmdRun.Stdout = os.Stdout
-	// if err := cmdRun.Run(); err != nil {
-	// 	fmt.Println(err)
-	// }
+
+	runTerminalCmdInShell(buildCmd)
 }
 
 func dockerRun(ctx *cli.Context, dockerTag string) {
-
 	dockerArgs := ctx.String("docker-args")
 	shellType := ctx.String("shell")
 	mountPWD := ctx.Bool("mount-pwd")
@@ -128,20 +122,12 @@ func dockerRun(ctx *cli.Context, dockerTag string) {
 
 	fmt.Println(runCmd)
 
-    runCommandInShell(runCmd)
-	// cmdRun := exec.Command("/bin/sh", "-c", runCmd)
-	// cmdRun.Stdout = os.Stdout
-	// cmdRun.Stderr = os.Stderr
-	// cmdRun.Stdin = os.Stdin
+	runTerminalCmdInShell(runCmd)
 
-	// if err := cmdRun.Run(); err != nil {
-	// 	fmt.Println(err)
-	// }
-
-    // TODO(jeikeilim): It's bad idea to check last container ID with docker ps -qn 1
-	lastContainerID := runTerminalCmd("docker", "ps -qn 1")
-    localConfig.LastExecID = lastContainerID
-    localConfig.Write(getDefaultLocalConfigPath())
+	// TODO(jeikeilim): It's bad idea to check last container ID with docker ps -qn 1
+	lastContainerID := getTerminalCmdOut("docker", "ps -qn 1")
+	localConfig.LastExecID = lastContainerID
+	localConfig.Write(getDefaultLocalConfigPath())
 
 	if shellType != "nosh" {
 		dockerExec(ctx)
@@ -149,7 +135,7 @@ func dockerRun(ctx *cli.Context, dockerTag string) {
 }
 
 func dockerExec(ctx *cli.Context) {
-    localConfig := readDefaultLocalConfig()
+	localConfig := readDefaultLocalConfig()
 
 	shellType := ctx.String("shell")
 	shellCmd := "/bin/bash"
@@ -160,48 +146,42 @@ func dockerExec(ctx *cli.Context) {
 
 	lastContainerID := localConfig.LastExecID
 
-    if lastContainerID == "" {
-        fmt.Println("Last container ID can not be found.")
-        return
-    }
+	if lastContainerID == "" {
+		fmt.Println("Last container ID can not be found.")
+		return
+	}
 
 	execCmd := "docker exec -ti " + lastContainerID
 	execCmd += " " + shellCmd
 
-    runCommandInShell(execCmd)
-	// cmdExec := exec.Command("/bin/sh", "-c", execCmd)
-	// cmdExec.Stdout = os.Stdout
-	// cmdExec.Stderr = os.Stderr
-	// cmdExec.Stdin = os.Stdin
-	// if err := cmdExec.Run(); err != nil {
-	// 	fmt.Println(err)
-	// }
+	runTerminalCmdInShell(execCmd)
 }
 
 func dockerPs() {
-    runCommandInShell("docker ps")
+	// TODO(jeikeilim): add option to show $PWD containers only.
+	runTerminalCmdInShell("docker ps")
 }
 
 func dockerLs() {
-    runCommandInShell("docker images")
+	runTerminalCmdInShell("docker images")
 }
 
 func duckerStop(ctx *cli.Context, dockerTag string) {
-    psString := "ps -f ancestor=" + dockerTag + " -q"
-    outContainerID := runTerminalCmd("docker", psString)
-    list_outContainerID := strings.Split(outContainerID, "\n")
-    
-    // TODO(ulken94): Add option to choose which container to kill.
-    cnt := 0
-    for _, cID := range list_outContainerID {
-        if strings.TrimSpace(cID) == "" {
-            break
-        }
-        cnt += 1
-        killString := "kill " + cID
-        runTerminalCmd("docker", killString)
-    }
-    fmt.Printf("Total %d container(s) is(are) killed.\n", cnt)
+	psString := "ps -f ancestor=" + dockerTag + " -q"
+	outContainerID := getTerminalCmdOut("docker", psString)
+	list_outContainerID := strings.Split(outContainerID, "\n")
+
+	// TODO(ulken94): Add option to choose which container to kill.
+	cnt := 0
+	for _, cID := range list_outContainerID {
+		if strings.TrimSpace(cID) == "" {
+			break
+		}
+		cnt += 1
+		killString := "kill " + cID
+		getTerminalCmdOut("docker", killString)
+	}
+	fmt.Printf("Total %d container(s) is(are) killed.\n", cnt)
 }
 
 func initDockerfile(ctx *cli.Context) {
@@ -217,10 +197,10 @@ func initDockerfile(ctx *cli.Context) {
 	globalConfig := readDefaultGlobalConfig()
 
 	if !ctx.Bool("quite") && globalConfig.IsEmpty() {
-        globalConfig = getDefaultGlobalConfig("", "", "")
-    } else if ctx.Bool("quite") && globalConfig.IsEmpty() {
-        globalConfig = getDefaultGlobalConfig(organization, name, contact)
-    }
+		globalConfig = getDefaultGlobalConfig("", "", "")
+	} else if ctx.Bool("quite") && globalConfig.IsEmpty() {
+		globalConfig = getDefaultGlobalConfig(organization, name, contact)
+	}
 
 	tzname, _ := tzlocal.RuntimeTZ()
 
@@ -296,13 +276,13 @@ func main() {
 	if err != nil {
 		fmt.Println(err)
 	}
-    globalConfig := readDefaultGlobalConfig()
+	globalConfig := readDefaultGlobalConfig()
 	organizationName := "jeikeilim"
 
-    if !globalConfig.IsEmpty() {
-        organizationName = globalConfig.Organization
-    }
-    
+	if !globalConfig.IsEmpty() {
+		organizationName = globalConfig.Organization
+	}
+
 	baseDir := filepath.Base(mydir)
 	projectName := strings.ToLower(baseDir)
 
@@ -320,7 +300,7 @@ func main() {
 
 	app := &cli.App{
 		Name:     "ducker",
-		Version:  "0.1.2",
+		Version:  "0.1.3",
 		Compiled: time.Now(),
 		Authors: []*cli.Author{
 			&cli.Author{
@@ -453,11 +433,11 @@ func main() {
 					return nil
 				},
 			},
-            {
-                Name:   "config",
-                Aliases: []string{"c"},
-                Usage:  "Ducker config file generation",
-                Flags: []cli.Flag{
+			{
+				Name:    "config",
+				Aliases: []string{"c"},
+				Usage:   "Ducker config file generation",
+				Flags: []cli.Flag{
 					&cli.BoolFlag{
 						Name:    "global",
 						Aliases: []string{"g"},
@@ -468,37 +448,37 @@ func main() {
 						Aliases: []string{"l"},
 						Usage:   "Generate local config file at $PWD/.ducker.yaml",
 					},
-                },
+				},
 				Action: func(cCtx *cli.Context) error {
 					duckerConfig(cCtx)
 					return nil
 				},
-            },
-            {
-                Name: "ps",
-                Usage: "Check docker container that is running now",
-                Action: func(cCtx *cli.Context) error {
-                    dockerPs()
-                    return nil
-                },
-            },
-            {
-                Name: "images",
-                Aliases: []string{"ls"},
-                Usage: "Check existing docker images",
-                Action: func(cCtx *cli.Context) error {
-                    dockerLs()
-                    return nil
-                },
-            },
-            {
-                Name: "stop",
-                Usage: "Check existing docker images",
-                Action: func(cCtx *cli.Context) error {
-                    duckerStop(cCtx, dockerTag)
-                    return nil
-                },
-            },
+			},
+			{
+				Name:  "ps",
+				Usage: "Check docker container that is running now",
+				Action: func(cCtx *cli.Context) error {
+					dockerPs()
+					return nil
+				},
+			},
+			{
+				Name:    "images",
+				Aliases: []string{"ls"},
+				Usage:   "Check existing docker images",
+				Action: func(cCtx *cli.Context) error {
+					dockerLs()
+					return nil
+				},
+			},
+			{
+				Name:  "stop",
+				Usage: "Check existing docker images",
+				Action: func(cCtx *cli.Context) error {
+					duckerStop(cCtx, dockerTag)
+					return nil
+				},
+			},
 		},
 		Action: func(cCtx *cli.Context) error {
 			cli.ShowAppHelp(cCtx)

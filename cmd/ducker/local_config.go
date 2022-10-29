@@ -10,15 +10,14 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Local ducker config structure
+// LocalConfig ducker local config structure
 // Normally, this file is located at $DIR/.ducker.yaml
 type LocalConfig struct {
-	Run_Arg   []string
-	Build_Arg []string
-	Mount_PWD bool
-    LastExecID string
+	Run_Arg    []string
+	Build_Arg  []string
+	Mount_PWD  bool
+	LastExecID string
 }
-
 
 // Get default local config setting
 func getDefaultLocalConfig() LocalConfig {
@@ -32,20 +31,20 @@ func getDefaultLocalConfig() LocalConfig {
 			"--network host",
 		},
 		Build_Arg: []string{
-			"--build-arg UID=" + runTerminalCmd("id", "-u"),
-			"--build-arg GID=" + runTerminalCmd("id", "-g"),
+			"--build-arg UID=" + getTerminalCmdOut("id", "-u"),
+			"--build-arg GID=" + getTerminalCmdOut("id", "-g"),
 		},
 		Mount_PWD: true,
 	}
 
-    return config
+	return config
 }
 
 // Write default local config file
 func writeDefaultLocalConfig() {
 	configPath := getDefaultLocalConfigPath()
-    config := getDefaultLocalConfig()
-    config.Write(configPath)
+	config := getDefaultLocalConfig()
+	config.Write(configPath)
 }
 
 // Get default local config path which is $PWD/.ducker.yaml
@@ -83,7 +82,7 @@ func readDefaultLocalConfig() LocalConfig {
 	return readLocalConfig(configPath)
 }
 
-// Check if run and build arg is empty
+// IsEmpty returns true if run and build arg are empty
 func (config LocalConfig) IsEmpty() bool {
 	if len(config.Build_Arg) == 0 && len(config.Run_Arg) == 0 {
 		return true
@@ -92,26 +91,25 @@ func (config LocalConfig) IsEmpty() bool {
 	return false
 }
 
-// Concatenates all run arguments
+// GetRunArg concatenates all run arguments
 func (config LocalConfig) GetRunArg() string {
 	return strings.Join(config.Run_Arg, " ")
 }
 
-// Concatenates all build arguments
+// GetBuildArg concatenates all build arguments
 func (config LocalConfig) GetBuildArg() string {
 	return strings.Join(config.Build_Arg, " ")
 }
 
 // Write config file
 func (config LocalConfig) Write(path string) {
-    data, err := yaml.Marshal(&config)
-    if err != nil {
-        log.Fatal(err)
-    }
-    err2 := ioutil.WriteFile(path, data, 0644)
+	data, err := yaml.Marshal(&config)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err2 := ioutil.WriteFile(path, data, 0644)
 
-    if err2 != nil {
-        log.Fatal(err2)
-    }
+	if err2 != nil {
+		log.Fatal(err2)
+	}
 }
-

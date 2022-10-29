@@ -1,8 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"bufio"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -12,7 +12,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Global ducker config structure
+// GlobalConfig ducker global config structure
 // Normally, this file is located at $HOME/.ducker_global.yaml
 type GlobalConfig struct {
 	Organization string
@@ -23,8 +23,8 @@ type GlobalConfig struct {
 // Get default global config
 // Asks config values if "" has given in the arguments
 func getDefaultGlobalConfig(organization string, name string, contact string) GlobalConfig {
-    if organization == "" {
-        organization = "jeikeilim"
+	if organization == "" {
+		organization = "jeikeilim"
 
 		reader := bufio.NewReader(os.Stdin)
 		fmt.Printf("Enter your organization name(Default: %s): ", organization)
@@ -33,42 +33,42 @@ func getDefaultGlobalConfig(organization string, name string, contact string) Gl
 		if strings.TrimSpace(keyIn) != "" {
 			organization = keyIn
 		}
-        organization = strings.TrimSpace(organization)
-    }
+		organization = strings.TrimSpace(organization)
+	}
 
-    if name == "" {
-        name = "Anonymous"
+	if name == "" {
+		name = "Anonymous"
 		reader := bufio.NewReader(os.Stdin)
 
 		fmt.Printf("Enter your name(Default: %s): ", name)
-        keyIn, err := reader.ReadString('\n')
+		keyIn, err := reader.ReadString('\n')
 		checkError(err)
 		if strings.TrimSpace(keyIn) != "" {
 			name = keyIn
 		}
 		name = strings.TrimSpace(name)
-    }
+	}
 
-    if contact == "" {
-        contact = "None"
+	if contact == "" {
+		contact = "None"
 		reader := bufio.NewReader(os.Stdin)
 
 		fmt.Printf("Enter contact address (Default: %s): ", contact)
-        keyIn, err := reader.ReadString('\n')
+		keyIn, err := reader.ReadString('\n')
 		checkError(err)
 		if strings.TrimSpace(keyIn) != "" {
 			contact = keyIn
 		}
 		contact = strings.TrimSpace(contact)
-    }
+	}
 
-    globalConfig := GlobalConfig{
-        Organization: organization,
-        Name: name,
-        Contact: contact,
-    }
+	globalConfig := GlobalConfig{
+		Organization: organization,
+		Name:         name,
+		Contact:      contact,
+	}
 
-    return globalConfig
+	return globalConfig
 }
 
 // Get default global config path
@@ -93,7 +93,7 @@ func writeDefaultGlobalConfig(organization string, name string, contact string) 
 		Name:         name,
 		Contact:      contact,
 	}
-    config.Write(configPath)
+	config.Write(configPath)
 
 	fmt.Println("Global configuration has been written")
 	fmt.Println("I won't be asking this again, please look at", configPath, "instaed.")
@@ -124,6 +124,7 @@ func readDefaultGlobalConfig() GlobalConfig {
 	return readGlobalConfig(configPath)
 }
 
+// IsEmpty returns true if all member variable strings are ""
 func (config GlobalConfig) IsEmpty() bool {
 	if config.Organization == "" && config.Contact == "" && config.Name == "" {
 		return true
@@ -133,13 +134,13 @@ func (config GlobalConfig) IsEmpty() bool {
 }
 
 func (config GlobalConfig) Write(path string) {
-    data, err := yaml.Marshal(&config)
-    if err != nil {
-        log.Fatal(err)
-    }
-    err2 := ioutil.WriteFile(path, data, 0644)
+	data, err := yaml.Marshal(&config)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err2 := ioutil.WriteFile(path, data, 0644)
 
-    if err2 != nil {
-        log.Fatal(err2)
-    }
+	if err2 != nil {
+		log.Fatal(err2)
+	}
 }
