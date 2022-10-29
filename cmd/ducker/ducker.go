@@ -66,17 +66,11 @@ func dockerBuild(ctx *cli.Context, dockerTag string) {
 	}
 
 	fmt.Println(buildCmd)
-    
-    runCommandInShell(buildCmd)
-	// cmdRun := exec.Command("/bin/sh", "-c", buildCmd)
-	// cmdRun.Stdout = os.Stdout
-	// if err := cmdRun.Run(); err != nil {
-	// 	fmt.Println(err)
-	// }
+
+	runTerminalCmdInShell(buildCmd)
 }
 
 func dockerRun(ctx *cli.Context, dockerTag string) {
-
 	dockerArgs := ctx.String("docker-args")
 	shellType := ctx.String("shell")
 	mountPWD := ctx.Bool("mount-pwd")
@@ -128,18 +122,10 @@ func dockerRun(ctx *cli.Context, dockerTag string) {
 
 	fmt.Println(runCmd)
 
-    runCommandInShell(runCmd)
-	// cmdRun := exec.Command("/bin/sh", "-c", runCmd)
-	// cmdRun.Stdout = os.Stdout
-	// cmdRun.Stderr = os.Stderr
-	// cmdRun.Stdin = os.Stdin
-
-	// if err := cmdRun.Run(); err != nil {
-	// 	fmt.Println(err)
-	// }
+	runTerminalCmdInShell(runCmd)
 
 	// TODO(jeikeilim): It's bad idea to check last container ID with docker ps -qn 1
-	lastContainerID := runTerminalCmd("docker", "ps -qn 1")
+	lastContainerID := getTerminalCmdOut("docker", "ps -qn 1")
 	localConfig.LastExecID = lastContainerID
 	localConfig.Write(getDefaultLocalConfigPath())
 
@@ -168,40 +154,34 @@ func dockerExec(ctx *cli.Context) {
 	execCmd := "docker exec -ti " + lastContainerID
 	execCmd += " " + shellCmd
 
-    runCommandInShell(execCmd)
-	// cmdExec := exec.Command("/bin/sh", "-c", execCmd)
-	// cmdExec.Stdout = os.Stdout
-	// cmdExec.Stderr = os.Stderr
-	// cmdExec.Stdin = os.Stdin
-	// if err := cmdExec.Run(); err != nil {
-	// 	fmt.Println(err)
-	// }
+	runTerminalCmdInShell(execCmd)
 }
 
 func dockerPs() {
-    runCommandInShell("docker ps")
+	// TODO(jeikeilim): add option to show $PWD containers only.
+	runTerminalCmdInShell("docker ps")
 }
 
 func dockerLs() {
-    runCommandInShell("docker images")
+	runTerminalCmdInShell("docker images")
 }
 
 func duckerStop(ctx *cli.Context, dockerTag string) {
-    psString := "ps -f ancestor=" + dockerTag + " -q"
-    outContainerID := runTerminalCmd("docker", psString)
-    list_outContainerID := strings.Split(outContainerID, "\n")
-    
-    // TODO(ulken94): Add option to choose which container to kill.
-    cnt := 0
-    for _, cID := range list_outContainerID {
-        if strings.TrimSpace(cID) == "" {
-            break
-        }
-        cnt += 1
-        killString := "kill " + cID
-        runTerminalCmd("docker", killString)
-    }
-    fmt.Printf("Total %d container(s) is(are) killed.\n", cnt)
+	psString := "ps -f ancestor=" + dockerTag + " -q"
+	outContainerID := getTerminalCmdOut("docker", psString)
+	list_outContainerID := strings.Split(outContainerID, "\n")
+
+	// TODO(ulken94): Add option to choose which container to kill.
+	cnt := 0
+	for _, cID := range list_outContainerID {
+		if strings.TrimSpace(cID) == "" {
+			break
+		}
+		cnt += 1
+		killString := "kill " + cID
+		getTerminalCmdOut("docker", killString)
+	}
+	fmt.Printf("Total %d container(s) is(are) killed.\n", cnt)
 }
 
 func initDockerfile(ctx *cli.Context) {
@@ -320,7 +300,7 @@ func main() {
 
 	app := &cli.App{
 		Name:     "ducker",
-		Version:  "0.1.2",
+		Version:  "0.1.3",
 		Compiled: time.Now(),
 		Authors: []*cli.Author{
 			&cli.Author{
@@ -473,32 +453,32 @@ func main() {
 					duckerConfig(cCtx)
 					return nil
 				},
-      },
-            {
-                Name: "ps",
-                Usage: "Check docker container that is running now",
-                Action: func(cCtx *cli.Context) error {
-                    dockerPs()
-                    return nil
-                },
-            },
-            {
-                Name: "images",
-                Aliases: []string{"ls"},
-                Usage: "Check existing docker images",
-                Action: func(cCtx *cli.Context) error {
-                    dockerLs()
-                    return nil
-                },
-            },
-            {
-                Name: "stop",
-                Usage: "Check existing docker images",
-                Action: func(cCtx *cli.Context) error {
-                    duckerStop(cCtx, dockerTag)
-                    return nil
-                },
-            },
+			},
+			{
+				Name:  "ps",
+				Usage: "Check docker container that is running now",
+				Action: func(cCtx *cli.Context) error {
+					dockerPs()
+					return nil
+				},
+			},
+			{
+				Name:    "images",
+				Aliases: []string{"ls"},
+				Usage:   "Check existing docker images",
+				Action: func(cCtx *cli.Context) error {
+					dockerLs()
+					return nil
+				},
+			},
+			{
+				Name:  "stop",
+				Usage: "Check existing docker images",
+				Action: func(cCtx *cli.Context) error {
+					duckerStop(cCtx, dockerTag)
+					return nil
+				},
+			},
 		},
 		Action: func(cCtx *cli.Context) error {
 			cli.ShowAppHelp(cCtx)

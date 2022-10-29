@@ -17,27 +17,29 @@ func checkError(err error) {
 	}
 }
 
-func runTerminalCmd(cmd string, option string) string {
+// Run terminal command and return its output.
+func getTerminalCmdOut(cmd string, option string) string {
 	cmdRun, cmdOut := exec.Command(cmd, strings.Split(option, " ")...), new(strings.Builder)
 	cmdRun.Stdout = cmdOut
 	err := cmdRun.Run()
-    
-    checkError(err)
+
+	checkError(err)
 	return strings.TrimSpace(cmdOut.String())
 }
 
-func runCommandInShell(cmd string) {
-    cmdResult := exec.Command("/bin/sh", "-c", cmd)
-    cmdResult.Stdout = os.Stdout
-    cmdResult.Stderr = os.Stderr
-    cmdResult.Stdin = os.Stdin
+// Run terminall command in shell with user interaction enabled.
+func runTerminalCmdInShell(cmd string) {
+	cmdResult := exec.Command("/bin/sh", "-c", cmd)
+	cmdResult.Stdout = os.Stdout
+	cmdResult.Stderr = os.Stderr
+	cmdResult.Stdin = os.Stdin
 	if err := cmdResult.Run(); err != nil {
 		fmt.Println(err)
 	}
 }
 
 func getArchType() string {
-	return runTerminalCmd("uname", "-m")
+	return getTerminalCmdOut("uname", "-m")
 }
 
 func writeFile(contents string, path string, overwrite bool) bool {

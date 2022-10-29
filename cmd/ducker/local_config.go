@@ -31,8 +31,8 @@ func getDefaultLocalConfig() LocalConfig {
 			"--network host",
 		},
 		Build_Arg: []string{
-			"--build-arg UID=" + runTerminalCmd("id", "-u"),
-			"--build-arg GID=" + runTerminalCmd("id", "-g"),
+			"--build-arg UID=" + getTerminalCmdOut("id", "-u"),
+			"--build-arg GID=" + getTerminalCmdOut("id", "-g"),
 		},
 		Mount_PWD: true,
 	}
