@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -67,12 +66,13 @@ func dockerBuild(ctx *cli.Context, dockerTag string) {
 	}
 
 	fmt.Println(buildCmd)
-
-	cmdRun := exec.Command("/bin/sh", "-c", buildCmd)
-	cmdRun.Stdout = os.Stdout
-	if err := cmdRun.Run(); err != nil {
-		fmt.Println(err)
-	}
+    
+    runCommandInShell(buildCmd)
+	// cmdRun := exec.Command("/bin/sh", "-c", buildCmd)
+	// cmdRun.Stdout = os.Stdout
+	// if err := cmdRun.Run(); err != nil {
+	// 	fmt.Println(err)
+	// }
 }
 
 func dockerRun(ctx *cli.Context, dockerTag string) {
@@ -128,14 +128,15 @@ func dockerRun(ctx *cli.Context, dockerTag string) {
 
 	fmt.Println(runCmd)
 
-	cmdRun := exec.Command("/bin/sh", "-c", runCmd)
-	cmdRun.Stdout = os.Stdout
-	cmdRun.Stderr = os.Stderr
-	cmdRun.Stdin = os.Stdin
+    runCommandInShell(runCmd)
+	// cmdRun := exec.Command("/bin/sh", "-c", runCmd)
+	// cmdRun.Stdout = os.Stdout
+	// cmdRun.Stderr = os.Stderr
+	// cmdRun.Stdin = os.Stdin
 
-	if err := cmdRun.Run(); err != nil {
-		fmt.Println(err)
-	}
+	// if err := cmdRun.Run(); err != nil {
+	// 	fmt.Println(err)
+	// }
 
     // TODO(jeikeilim): It's bad idea to check last container ID with docker ps -qn 1
 	lastContainerID := runTerminalCmd("docker", "ps -qn 1")
@@ -167,13 +168,40 @@ func dockerExec(ctx *cli.Context) {
 	execCmd := "docker exec -ti " + lastContainerID
 	execCmd += " " + shellCmd
 
-	cmdExec := exec.Command("/bin/sh", "-c", execCmd)
-	cmdExec.Stdout = os.Stdout
-	cmdExec.Stderr = os.Stderr
-	cmdExec.Stdin = os.Stdin
-	if err := cmdExec.Run(); err != nil {
-		fmt.Println(err)
-	}
+    runCommandInShell(execCmd)
+	// cmdExec := exec.Command("/bin/sh", "-c", execCmd)
+	// cmdExec.Stdout = os.Stdout
+	// cmdExec.Stderr = os.Stderr
+	// cmdExec.Stdin = os.Stdin
+	// if err := cmdExec.Run(); err != nil {
+	// 	fmt.Println(err)
+	// }
+}
+
+func dockerPs() {
+    runCommandInShell("docker ps")
+}
+
+func dockerLs() {
+    runCommandInShell("docker images")
+}
+
+func duckerStop(ctx *cli.Context, dockerTag string) {
+    psString := "ps -f ancestor=" + dockerTag + " -q"
+    outContainerID := runTerminalCmd("docker", psString)
+    list_outContainerID := strings.Split(outContainerID, "\n")
+    
+    // TODO(ulken94): Add option to choose which container to kill.
+    cnt := 0
+    for _, cID := range list_outContainerID {
+        if strings.TrimSpace(cID) == "" {
+            break
+        }
+        cnt += 1
+        killString := "kill " + cID
+        runTerminalCmd("docker", killString)
+    }
+    fmt.Printf("Total %d container(s) is(are) killed.\n", cnt)
 }
 
 func initDockerfile(ctx *cli.Context) {
@@ -445,6 +473,31 @@ func main() {
 					duckerConfig(cCtx)
 					return nil
 				},
+            },
+            {
+                Name: "ps",
+                Usage: "Check docker container that is running now",
+                Action: func(cCtx *cli.Context) error {
+                    dockerPs()
+                    return nil
+                },
+            },
+            {
+                Name: "images",
+                Aliases: []string{"ls"},
+                Usage: "Check existing docker images",
+                Action: func(cCtx *cli.Context) error {
+                    dockerLs()
+                    return nil
+                },
+            },
+            {
+                Name: "stop",
+                Usage: "Check existing docker images",
+                Action: func(cCtx *cli.Context) error {
+                    duckerStop(cCtx, dockerTag)
+                    return nil
+                },
             },
 		},
 		Action: func(cCtx *cli.Context) error {

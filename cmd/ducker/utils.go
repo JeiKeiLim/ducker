@@ -21,9 +21,19 @@ func runTerminalCmd(cmd string, option string) string {
 	cmdRun, cmdOut := exec.Command(cmd, strings.Split(option, " ")...), new(strings.Builder)
 	cmdRun.Stdout = cmdOut
 	err := cmdRun.Run()
-
-	checkError(err)
+    
+    checkError(err)
 	return strings.TrimSpace(cmdOut.String())
+}
+
+func runCommandInShell(cmd string) {
+    cmdResult := exec.Command("/bin/sh", "-c", cmd)
+    cmdResult.Stdout = os.Stdout
+    cmdResult.Stderr = os.Stderr
+    cmdResult.Stdin = os.Stdin
+	if err := cmdResult.Run(); err != nil {
+		fmt.Println(err)
+	}
 }
 
 func getArchType() string {
