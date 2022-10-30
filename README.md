@@ -1,4 +1,4 @@
-<img width="240" alt="Ducker icon" src="docs/imgs/ducker_icon.png">
+<img width="240" alt="Ducker icon" src="docs/imgs/ducker_icon.png"></img>
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
 [![All Contributors](https://img.shields.io/badge/all_contributors-1-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
