@@ -1,6 +1,6 @@
 <img width="240" alt="Ducker icon" src="docs/imgs/ducker_icon.png"></img>
 <!-- ALL-CONTRIBUTORS-BADGE:START - Do not remove or modify this section -->
-[![All Contributors](https://img.shields.io/badge/all_contributors-1-orange.svg?style=flat-square)](#contributors-)
+[![All Contributors](https://img.shields.io/badge/all_contributors-2-orange.svg?style=flat-square)](#contributors-)
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
 
 
@@ -83,6 +83,7 @@ Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/d
   <tbody>
     <tr>
       <td align="center"><a href="https://limjk.ai"><img src="https://avatars.githubusercontent.com/u/10356193?v=4?s=100" width="100px;" alt="Jongkuk Lim"/><br /><sub><b>Jongkuk Lim</b></sub></a><br /><a href="https://github.com/JeiKeiLim/ducker/commits?author=JeiKeiLim" title="Code">💻</a> <a href="#ideas-JeiKeiLim" title="Ideas, Planning, & Feedback">🤔</a></td>
+      <td align="center"><a href="https://github.com/ulken94"><img src="https://avatars.githubusercontent.com/u/58245037?v=4?s=100" width="100px;" alt="Haneol Kim"/><br /><sub><b>Haneol Kim</b></sub></a><br /><a href="https://github.com/JeiKeiLim/ducker/commits?author=ulken94" title="Code">💻</a></td>
     </tr>
   </tbody>
 </table>
