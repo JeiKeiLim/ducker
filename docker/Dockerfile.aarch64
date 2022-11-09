@@ -1,6 +1,7 @@
 FROM ubuntu:bionic
 
-LABEL maintainer="Jongkuk Lim <lim.jeikei@gmail.com>"
+LABEL maintainer="hekim <hekim@jmarple.ai>"
+
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Asia/Seoul
 ENV TERM xterm-256color
@@ -16,6 +17,8 @@ RUN echo "%sudo ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers && echo "user:user" | c
 WORKDIR /home/user
 USER user
 
+RUN sudo apt-get update && sudo apt-get install -y libgl1-mesa-dev && sudo apt-get -y install jq
+
 ENV NVIDIA_VISIBLE_DEVICES ${NVIDIA_VISIBLE_DEVICES:-all}
 ENV NVIDIA_DRIVER_CAPABILITIES ${NVIDIA_DRIVER_CAPABILITIES:+$NVIDIA_DRIVER_CAPABILITIES,}graphics
 
@@ -30,6 +33,6 @@ RUN echo "\n# Custom settings" >> /home/user/.zshrc && \
     echo "export LC_ALL=C.UTF-8 && export LANG=C.UTF-8" >> /home/user/.zshrc && \
     sed '11 c\ZSH_THEME=powerlevel10k/powerlevel10k' ~/.zshrc  > tmp.txt && mv tmp.txt ~/.zshrc && \
     echo 'POWERLEVEL9K_DISABLE_CONFIGURATION_WIZARD=true' >> ~/.zshrc
-
+RUN sudo chsh -s $(which zsh) $(whoami)
 # Place your environment here
 

@@ -245,6 +245,9 @@ func initDockerfile(ctx *cli.Context) {
 	dockerContents += "    sed '11 c\\ZSH_THEME=powerlevel10k/powerlevel10k' ~/.zshrc  > tmp.txt && mv tmp.txt ~/.zshrc && \\\n"
 	dockerContents += "    echo 'POWERLEVEL9K_DISABLE_CONFIGURATION_WIZARD=true' >> ~/.zshrc\n"
 
+    // Change default shell to zsh
+    dockerContents += "RUN sudo chsh -s $(which zsh) $(whoami)"
+
 	if templateContent != "" {
 		dockerContents += "\n"
 		dockerContents += templateContent
