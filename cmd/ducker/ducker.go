@@ -13,6 +13,10 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+var (
+    version string
+)
+
 // Cross compile options
 // env GOOS=darwin GOARCH=arm64 go build ./cmd/ducker
 
@@ -303,7 +307,7 @@ func main() {
 
 	app := &cli.App{
 		Name:     "ducker",
-		Version:  "0.1.3",
+		Version:  version,
 		Compiled: time.Now(),
 		Authors: []*cli.Author{
 			&cli.Author{
