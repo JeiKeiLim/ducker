@@ -10,6 +10,39 @@
 # Disclaimer
 - Ducker has been developed for me and my organization usage purpose. It might not be suitable for everyone, however, I am willing to expand general purpose docker helper application. If you have any ideas, thought, and complains, please let me know. It would be much appreciated to build better tools for everyone.
 
+# Install
+## Linux
+### x86_64
+```shell
+curl https://raw.githubusercontent.com/JeiKeiLim/ducker/main/install.sh | bash -s install linux amd64
+```
+
+### arm64
+```shell
+curl https://raw.githubusercontent.com/JeiKeiLim/ducker/main/install.sh | bash -s install linux arm64
+```
+
+### arm (32 bit)
+```shell
+curl https://raw.githubusercontent.com/JeiKeiLim/ducker/main/install.sh | bash -s install linux arm
+```
+
+## MacOS
+### Intel
+```shell
+curl https://raw.githubusercontent.com/JeiKeiLim/ducker/main/install.sh | bash -s install darwin amd64
+```
+
+### M1 chip
+```shell
+curl https://raw.githubusercontent.com/JeiKeiLim/ducker/main/install.sh | bash -s install darwin arm64
+```
+
+# Uninstall
+```shell
+curl https://raw.githubusercontent.com/JeiKeiLim/ducker/main/install.sh | bash -s uninstall
+```
+
 # How to use
 ## Init
 ```shell
