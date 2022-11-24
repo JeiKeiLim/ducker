@@ -3,7 +3,7 @@
 # Shell script for install and uninstall ducker
 #
 # - Author: Jongkuk Lim
-# - Contact: limjk@jmarple.ai
+# - Contact: lim.jeikei@gmail.com
 #
 # Usage)
 # 1. Install
