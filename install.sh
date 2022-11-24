@@ -39,9 +39,13 @@ elif [ "$1" = "uninstall" ]; then
 fi
 
 echo "Install ducker-$VERSION-$OS-$ARCH ..."
-
-wget https://github.com/JeiKeiLim/ducker/releases/download/v$VERSION/ducker-$VERSION-$OS-$ARCH.tar.gz
-tar xzvf ducker-$VERSION-$OS-$ARCH.tar.gz
+wget -q https://github.com/JeiKeiLim/ducker/releases/download/v$VERSION/ducker-$VERSION-$OS-$ARCH.tar.gz
+if [ ! -f ducker-$VERSION-$OS-$ARCH.tar.gz ]; then
+    echo "ducker-$VERSION-$OS-$ARCH can not be found."
+    echo "Please check correct version at https://github.com/JeiKeiLim/ducker/releases"
+    exit 1
+fi
+tar xzf ducker-$VERSION-$OS-$ARCH.tar.gz
 sudo mv ducker /usr/local/bin/
 rm ducker-$VERSION-$OS-$ARCH.tar.gz
 
