@@ -12,11 +12,12 @@
 # 2. Uninstall
 #   - install.sh uninstall
 
-VERSION=0.1.3
+VERSION=$(curl -s https://raw.githubusercontent.com/JeiKeiLim/ducker/main/VERSION)
 OS=linux
 ARCH=amd64
 
 if [ "$1" = "install" ]; then
+    # Check Version, OS, Archiecture from arguments
     if [ -n "$2" ]; then
         OS=$2
         if [ -n "$3" ]; then
@@ -24,6 +25,20 @@ if [ "$1" = "install" ]; then
             if [ -n "$4" ]; then
                 VERSION=$4
             fi
+        fi
+    fi
+
+    # Ducker already installed
+    if [ -f "/usr/local/bin/ducker" ]; then
+        CURRENT_VERSION=$(ducker -v | tail -n 1 | cut -d " " -f 3)
+        echo "ducker has been found on your system."
+        echo "Current: $CURRENT_VERSION"
+        echo "Install: $VERSION"
+        read -p "Do you want to continue to install? [y/n] " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$  ]]
+        then
+                exit 1
         fi
     fi
 elif [ "$1" = "uninstall" ]; then
