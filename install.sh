@@ -34,7 +34,7 @@ if [ "$1" = "install" ]; then
         echo "ducker has been found on your system."
         echo "Current: $CURRENT_VERSION"
         echo "Install: $VERSION"
-        read -p "Do you want to continue to install? [y/n] " -n 1 -r
+        read -p "Do you want to continue to install? [y/n] " -n 1 -r </dev/tty
         echo
         if [[ ! $REPLY =~ ^[Yy]$  ]]
         then
@@ -51,6 +51,10 @@ elif [ "$1" = "uninstall" ]; then
         echo "ducker has been removed!"
         exit 0
     fi
+else
+    echo "Wrong command $0"
+    echo "Please use install.sh install or install.sh uninstall"
+    exit 1
 fi
 
 echo "Install ducker-$VERSION-$OS-$ARCH ..."
