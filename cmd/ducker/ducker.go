@@ -78,7 +78,6 @@ func dockerRun(ctx *cli.Context, dockerTag string) {
 	dockerArgs := ctx.String("docker-args")
 	shellType := ctx.String("shell")
 	mountPWD := ctx.Bool("mount-pwd")
-	shellCmd := "/bin/bash"
 	dockerOpt := "-tid"
 
 	runOption := ""
@@ -87,12 +86,20 @@ func dockerRun(ctx *cli.Context, dockerTag string) {
 		runOption += localConfig.GetRunArg()
 	}
 
-	if shellType == "zsh" {
+	shellCmd := "/bin/bash"
+  
+  if shellType == "default" {
+    shellType = localConfig.Default_Shell
+  }
+  if shellType == "zsh" {
 		shellCmd = "/usr/bin/zsh"
-	} else if shellType == "nosh" {
-		shellCmd = ctx.String("run-cmd")
-		dockerOpt = "-ti"
+	} else if shellType == "bash" {
+    shellCmd = "/bin/bash"
 	}
+  if ctx.String("run-cmd") != "" {
+    shellCmd = ctx.String("run-cmd")
+    dockerOpt = "-ti"
+  }
 
 	runCmd := "docker run " + dockerOpt + " "
 	runCmd += runOption
@@ -133,7 +140,7 @@ func dockerRun(ctx *cli.Context, dockerTag string) {
 	localConfig.LastExecID = lastContainerID
 	localConfig.Write(getDefaultLocalConfigPath())
 
-	if shellType != "nosh" {
+  if ctx.String("run-cmd") == "" {
 		dockerExec(ctx)
 	}
 }
@@ -144,8 +151,14 @@ func dockerExec(ctx *cli.Context) {
 	shellType := ctx.String("shell")
 	shellCmd := "/bin/bash"
 
-	if shellType == "zsh" {
+  if shellType == "default" {
+    shellType = localConfig.Default_Shell
+  }
+
+  if shellType == "zsh" {
 		shellCmd = "/usr/bin/zsh"
+	} else if shellType == "bash" {
+    shellCmd = "/bin/bash"
 	}
 
 	lastContainerID := localConfig.LastExecID
@@ -400,9 +413,9 @@ func main() {
 					&cli.StringFlag{
 						Name:        "shell",
 						Aliases:     []string{"s"},
-						Usage:       "Shell type to run (bash, zsh, nosh)",
-						Value:       "zsh",
-						DefaultText: "zsh",
+						Usage:       "Shell type to run (default, bash, zsh)",
+						Value:       "default",
+						DefaultText: "default",
 					},
 					&cli.BoolFlag{
 						Name:    "mount-pwd",
@@ -412,7 +425,7 @@ func main() {
 					&cli.StringFlag{
 						Name:        "run-cmd",
 						Aliases:     []string{"r"},
-						Usage:       "Running command (only applies when shell=nosh)",
+						Usage:       "Running command (Shell will not be executed)",
 						Value:       "",
 						DefaultText: "",
 					},
