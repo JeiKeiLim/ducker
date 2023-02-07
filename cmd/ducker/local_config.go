@@ -16,6 +16,7 @@ type LocalConfig struct {
 	Run_Arg    []string
 	Build_Arg  []string
 	Mount_PWD  bool
+  Default_Shell string
 	LastExecID string
 }
 
@@ -34,6 +35,7 @@ func getDefaultLocalConfig() LocalConfig {
 			"--build-arg UID=" + getTerminalCmdOut("id", "-u"),
 			"--build-arg GID=" + getTerminalCmdOut("id", "-g"),
 		},
+    Default_Shell: "zsh",
 		Mount_PWD: true,
 	}
 
