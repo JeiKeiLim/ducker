@@ -171,6 +171,13 @@ func dockerExec(ctx *cli.Context) {
 	execCmd := "docker exec -ti " + lastContainerID
 	execCmd += " " + shellCmd
 
+  result := getTerminalCmdOut("docker", "ps -f id=" + lastContainerID)
+  if !strings.Contains(result, lastContainerID) {
+    fmt.Println("Last container " + lastContainerID + " is not running.")
+    fmt.Println("Start container ...")
+    getTerminalCmdOut("docker", "start " + lastContainerID)
+  }
+
 	runTerminalCmdInShell(execCmd)
 }
 
