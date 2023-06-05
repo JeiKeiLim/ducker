@@ -52,7 +52,7 @@ elif [ "$1" = "uninstall" ]; then
         exit 0
     fi
 else
-    echo "Wrong command $0"
+    echo "Wrong command $1"
     echo "Please use install.sh install or install.sh uninstall"
     exit 1
 fi

@@ -171,6 +171,13 @@ func dockerExec(ctx *cli.Context) {
 	execCmd := "docker exec -ti " + lastContainerID
 	execCmd += " " + shellCmd
 
+  result := getTerminalCmdOut("docker", "ps -f id=" + lastContainerID)
+  if !strings.Contains(result, lastContainerID) {
+    fmt.Println("Last container " + lastContainerID + " is not running.")
+    fmt.Println("Start container ...")
+    getTerminalCmdOut("docker", "start " + lastContainerID)
+  }
+
 	runTerminalCmdInShell(execCmd)
 }
 
@@ -437,12 +444,12 @@ func main() {
 			},
 			{
 				Name:    "exec",
-				Aliases: []string{"r"},
+				Aliases: []string{"e"},
 				Usage:   "Executing the docker container",
 				Flags: []cli.Flag{
 					&cli.StringFlag{
 						Name:        "shell",
-						Aliases:     []string{"s"},
+						Aliases:     []string{"e"},
 						Usage:       "Shell type to run (bash, zsh)",
 						Value:       "zsh",
 						DefaultText: "zsh",
