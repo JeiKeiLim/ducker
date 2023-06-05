@@ -444,12 +444,12 @@ func main() {
 			},
 			{
 				Name:    "exec",
-				Aliases: []string{"r"},
+				Aliases: []string{"e"},
 				Usage:   "Executing the docker container",
 				Flags: []cli.Flag{
 					&cli.StringFlag{
 						Name:        "shell",
-						Aliases:     []string{"s"},
+						Aliases:     []string{"e"},
 						Usage:       "Shell type to run (bash, zsh)",
 						Value:       "zsh",
 						DefaultText: "zsh",
