@@ -32,8 +32,6 @@ func getDefaultLocalConfig() LocalConfig {
 			"--network host",
 		},
 		Build_Arg: []string{
-			"--build-arg UID=" + getTerminalCmdOut("id", "-u"),
-			"--build-arg GID=" + getTerminalCmdOut("id", "-g"),
 		},
     Default_Shell: "zsh",
 		Mount_PWD: true,
