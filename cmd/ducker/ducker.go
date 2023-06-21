@@ -60,10 +60,24 @@ func dockerBuild(ctx *cli.Context, dockerTag string) {
 	localConfig := readDefaultLocalConfig()
 
 	buildArgs := ctx.String("args")
+  localConfigBuildArgs := localConfig.GetBuildArg()
+
+  // Check if localConfig or buildArgs includes --build-arg UID
+  uidArgs := ""
+  if !strings.Contains(localConfigBuildArgs, "--build-arg UID") && 
+      !strings.Contains(buildArgs, "--build-arg UID") {
+    uidArgs += "--build-arg UID=" + getTerminalCmdOut("id", "-u")
+  }
+  // Check if localConfig or buildArgs includes --build-arg GID
+  if !strings.Contains(localConfigBuildArgs, "--build-arg GID") && 
+      !strings.Contains(buildArgs, "--build-arg GID") {
+    uidArgs += " --build-arg GID=" + getTerminalCmdOut("id", "-g")
+  }
 
 	buildCmd := "docker build . -t " + dockerTag
 	buildCmd += " -f " + dockerFilePath
-	buildCmd += " " + localConfig.GetBuildArg()
+	buildCmd += " " + localConfigBuildArgs
+  buildCmd += " " + uidArgs
 
 	if buildArgs != "" {
 		buildCmd += " " + buildArgs
