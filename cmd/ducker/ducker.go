@@ -229,7 +229,7 @@ func initDockerfile(ctx *cli.Context) {
 	tzname, _ := tzlocal.RuntimeTZ()
 
 	// TODO(jeikeilim): Add custom base image support
-	dockerBaseImage := "ubuntu:bionic"
+	dockerBaseImage := "ubuntu:22.04"
 	dockerContents := fmt.Sprintf("FROM %s\n\n", dockerBaseImage)
 
 	dockerContents += fmt.Sprintf("LABEL maintainer=\"%s <%s>\"\n\n",
@@ -411,9 +411,9 @@ func main() {
 				Usage:   "Running docker image",
 				Flags: []cli.Flag{
 					&cli.StringFlag{
-						Name:        "docker-args",
-						Aliases:     []string{"da"},
-						Usage:       "Extra arguments for docker run. ex) ducker run --docker-args \"-v $PWD:/home/user/ducker\"",
+						Name:        "args",
+						Aliases:     []string{"a"},
+						Usage:       "Extra arguments for docker run. ex) ducker run --args \"-v $PWD:/home/user/ducker\"",
 						Value:       "",
 						DefaultText: "",
 					},
@@ -449,7 +449,7 @@ func main() {
 				Flags: []cli.Flag{
 					&cli.StringFlag{
 						Name:        "shell",
-						Aliases:     []string{"e"},
+						Aliases:     []string{"s"},
 						Usage:       "Shell type to run (bash, zsh)",
 						Value:       "zsh",
 						DefaultText: "zsh",
