@@ -20,6 +20,19 @@ var (
 // Cross compile options
 // env GOOS=darwin GOARCH=arm64 go build ./cmd/ducker
 
+
+func checkDebugMode(msg string, always_print bool) bool {
+  if os.Getenv("DUCKER_DEBUG") != "" {
+    fmt.Println(msg)
+
+    return true
+  } else if always_print {
+    fmt.Println(msg)
+  }
+
+  return false
+}
+
 func duckerConfig(ctx *cli.Context) {
 	// TODO(jeikeilim): add more flexible setting options
 	genGlobal := ctx.Bool("global")
@@ -83,7 +96,9 @@ func dockerBuild(ctx *cli.Context, dockerTag string) {
 		buildCmd += " " + buildArgs
 	}
 
-	fmt.Println(buildCmd)
+  if checkDebugMode(buildCmd, true) {
+    return
+  }
 
 	runTerminalCmdInShell(buildCmd)
 }
@@ -145,7 +160,10 @@ func dockerRun(ctx *cli.Context, dockerTag string) {
 	runCmd += " " + dockerTag
 	runCmd += " " + shellCmd
 
-	fmt.Println(runCmd)
+
+  if checkDebugMode(runCmd, true) {
+    return
+  }
 
 	runTerminalCmdInShell(runCmd)
 
@@ -189,7 +207,16 @@ func dockerExec(ctx *cli.Context) {
   if !strings.Contains(result, lastContainerID) {
     fmt.Println("Last container " + lastContainerID + " is not running.")
     fmt.Println("Start container ...")
+
+    if checkDebugMode(execCmd, true) {
+      return
+    }
+
     getTerminalCmdOut("docker", "start " + lastContainerID)
+  }
+
+  if checkDebugMode(execCmd, true) {
+    return
   }
 
 	runTerminalCmdInShell(execCmd)
@@ -464,9 +491,9 @@ func main() {
 					&cli.StringFlag{
 						Name:        "shell",
 						Aliases:     []string{"s"},
-						Usage:       "Shell type to run (bash, zsh)",
-						Value:       "zsh",
-						DefaultText: "zsh",
+						Usage:       "Shell type to run (default, bash, zsh)",
+						Value:       "default",
+						DefaultText: "default",
 					},
 				},
 				Action: func(cCtx *cli.Context) error {
