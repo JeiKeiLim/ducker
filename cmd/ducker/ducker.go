@@ -11,6 +11,7 @@ import (
 
 	"github.com/thlib/go-timezone-local/tzlocal"
 	"github.com/urfave/cli/v2"
+	"github.com/jeikeilim/ducker/internal/duckerlib"
 )
 
 var (
@@ -40,27 +41,27 @@ func duckerConfig(ctx *cli.Context) {
 
 	if genGlobal {
 		doWrite := true
-		defaultGlobalConfig := getDefaultGlobalConfig("", "", "")
+		defaultGlobalConfig := duckerlib.GetDefaultGlobalConfig("", "", "")
 
-		if _, err := os.Stat(getDefaultGlobalConfigPath()); err == nil {
-			doWrite = asksAreYouSure("Ducker global config file already exists at " + getDefaultGlobalConfigPath() + " Do you want to OVERWRITE?")
+		if _, err := os.Stat(duckerlib.GetDefaultGlobalConfigPath()); err == nil {
+			doWrite = duckerlib.AsksAreYouSure("Ducker global config file already exists at " + duckerlib.GetDefaultGlobalConfigPath() + " Do you want to OVERWRITE?")
 		}
 		if doWrite {
-			defaultGlobalConfig.Write(getDefaultGlobalConfigPath())
-			fmt.Println("Global config has been written in", getDefaultGlobalConfigPath())
+			defaultGlobalConfig.Write(duckerlib.GetDefaultGlobalConfigPath())
+			fmt.Println("Global config has been written in", duckerlib.GetDefaultGlobalConfigPath())
 		}
 	}
 
 	if genLocal {
 		doWrite := true
-		defaultLocalConfig := getDefaultLocalConfig()
-		if _, err := os.Stat(getDefaultLocalConfigPath()); err == nil {
-			doWrite = asksAreYouSure("Ducker local config file already exists at " + getDefaultLocalConfigPath() + " Do you want to OVERWRITE?")
+		defaultLocalConfig := duckerlib.GetDefaultLocalConfig()
+		if _, err := os.Stat(duckerlib.GetDefaultLocalConfigPath()); err == nil {
+			doWrite = duckerlib.AsksAreYouSure("Ducker local config file already exists at " + duckerlib.GetDefaultLocalConfigPath() + " Do you want to OVERWRITE?")
 		}
 
 		if doWrite {
-			defaultLocalConfig.Write(getDefaultLocalConfigPath())
-			fmt.Println("Local config has been written in", getDefaultLocalConfigPath())
+			defaultLocalConfig.Write(duckerlib.GetDefaultLocalConfigPath())
+			fmt.Println("Local config has been written in", duckerlib.GetDefaultLocalConfigPath())
 		}
 	}
 }
@@ -68,9 +69,9 @@ func duckerConfig(ctx *cli.Context) {
 func dockerBuild(ctx *cli.Context, dockerTag string) {
 	dockerFilePath := "docker/Dockerfile"
 	if !strings.HasSuffix(dockerTag, "x86_64") {
-		dockerFilePath += "." + getArchType()
+		dockerFilePath += "." + duckerlib.GetArchType()
 	}
-	localConfig := readDefaultLocalConfig()
+	localConfig := duckerlib.ReadDefaultLocalConfig()
 
 	buildArgs := ctx.String("args")
   localConfigBuildArgs := localConfig.GetBuildArg()
@@ -79,12 +80,12 @@ func dockerBuild(ctx *cli.Context, dockerTag string) {
   uidArgs := ""
   if !strings.Contains(localConfigBuildArgs, "--build-arg UID") && 
       !strings.Contains(buildArgs, "--build-arg UID") {
-    uidArgs += "--build-arg UID=" + getTerminalCmdOut("id", "-u")
+    uidArgs += "--build-arg UID=" + duckerlib.GetTerminalCmdOut("id", "-u")
   }
   // Check if localConfig or buildArgs includes --build-arg GID
   if !strings.Contains(localConfigBuildArgs, "--build-arg GID") && 
       !strings.Contains(buildArgs, "--build-arg GID") {
-    uidArgs += " --build-arg GID=" + getTerminalCmdOut("id", "-g")
+    uidArgs += " --build-arg GID=" + duckerlib.GetTerminalCmdOut("id", "-g")
   }
 
 	buildCmd := "docker build . -t " + dockerTag
@@ -100,7 +101,7 @@ func dockerBuild(ctx *cli.Context, dockerTag string) {
     return
   }
 
-	runTerminalCmdInShell(buildCmd)
+	duckerlib.RunTerminalCmdInShell(buildCmd)
 }
 
 func dockerRun(ctx *cli.Context, dockerTag string) {
@@ -110,7 +111,7 @@ func dockerRun(ctx *cli.Context, dockerTag string) {
 	dockerOpt := "-tid"
 
 	runOption := ""
-	localConfig := readDefaultLocalConfig()
+	localConfig := duckerlib.ReadDefaultLocalConfig()
 	if !localConfig.IsEmpty() {
 		runOption += localConfig.GetRunArg()
 	}
@@ -165,12 +166,12 @@ func dockerRun(ctx *cli.Context, dockerTag string) {
     return
   }
 
-	runTerminalCmdInShell(runCmd)
+	duckerlib.RunTerminalCmdInShell(runCmd)
 
 	// TODO(jeikeilim): It's bad idea to check last container ID with docker ps -qn 1
-	lastContainerID := getTerminalCmdOut("docker", "ps -qn 1")
+	lastContainerID := duckerlib.GetTerminalCmdOut("docker", "ps -qn 1")
 	localConfig.LastExecID = lastContainerID
-	localConfig.Write(getDefaultLocalConfigPath())
+	localConfig.Write(duckerlib.GetDefaultLocalConfigPath())
 
   if ctx.String("run-cmd") == "" {
 		dockerExec(ctx)
@@ -178,7 +179,7 @@ func dockerRun(ctx *cli.Context, dockerTag string) {
 }
 
 func dockerExec(ctx *cli.Context) {
-	localConfig := readDefaultLocalConfig()
+	localConfig := duckerlib.ReadDefaultLocalConfig()
 
 	shellType := ctx.String("shell")
 	shellCmd := "/bin/bash"
@@ -203,7 +204,7 @@ func dockerExec(ctx *cli.Context) {
 	execCmd := "docker exec -ti " + lastContainerID
 	execCmd += " " + shellCmd
 
-  result := getTerminalCmdOut("docker", "ps -f id=" + lastContainerID)
+  result := duckerlib.GetTerminalCmdOut("docker", "ps -f id=" + lastContainerID)
   if !strings.Contains(result, lastContainerID) {
     fmt.Println("Last container " + lastContainerID + " is not running.")
     fmt.Println("Start container ...")
@@ -212,28 +213,28 @@ func dockerExec(ctx *cli.Context) {
       return
     }
 
-    getTerminalCmdOut("docker", "start " + lastContainerID)
+    duckerlib.GetTerminalCmdOut("docker", "start " + lastContainerID)
   }
 
   if checkDebugMode(execCmd, true) {
     return
   }
 
-	runTerminalCmdInShell(execCmd)
+	duckerlib.RunTerminalCmdInShell(execCmd)
 }
 
 func dockerPs() {
 	// TODO(jeikeilim): add option to show $PWD containers only.
-	runTerminalCmdInShell("docker ps")
+	duckerlib.RunTerminalCmdInShell("docker ps")
 }
 
 func dockerLs() {
-	runTerminalCmdInShell("docker images")
+	duckerlib.RunTerminalCmdInShell("docker images")
 }
 
 func duckerStop(ctx *cli.Context, dockerTag string) {
 	psString := "ps -f ancestor=" + dockerTag + " -q"
-	outContainerID := getTerminalCmdOut("docker", psString)
+	outContainerID := duckerlib.GetTerminalCmdOut("docker", psString)
 	list_outContainerID := strings.Split(outContainerID, "\n")
 
 	// TODO(ulken94): Add option to choose which container to kill.
@@ -244,7 +245,7 @@ func duckerStop(ctx *cli.Context, dockerTag string) {
 		}
 		cnt += 1
 		killString := "kill " + cID
-		getTerminalCmdOut("docker", killString)
+		duckerlib.GetTerminalCmdOut("docker", killString)
 	}
 	fmt.Printf("Total %d container(s) is(are) killed.\n", cnt)
 }
@@ -257,14 +258,14 @@ func initDockerfile(ctx *cli.Context) {
 	forceOverwrite := ctx.Bool("force")
 
 	fmt.Println(template)
-	templateContent := checkTemplates(template)
+	templateContent := duckerlib.CheckTemplates(template)
 
-	globalConfig := readDefaultGlobalConfig()
+	globalConfig := duckerlib.ReadDefaultGlobalConfig()
 
 	if !ctx.Bool("quite") && globalConfig.IsEmpty() {
-		globalConfig = getDefaultGlobalConfig("", "", "")
+		globalConfig = duckerlib.GetDefaultGlobalConfig("", "", "")
 	} else if ctx.Bool("quite") && globalConfig.IsEmpty() {
-		globalConfig = getDefaultGlobalConfig(organization, name, contact)
+		globalConfig = duckerlib.GetDefaultGlobalConfig(organization, name, contact)
 	}
 
 	tzname, _ := tzlocal.RuntimeTZ()
@@ -321,11 +322,11 @@ func initDockerfile(ctx *cli.Context) {
 
 	err := os.Mkdir("docker", os.ModePerm)
 	if !forceOverwrite {
-		checkError(err)
+		duckerlib.CheckError(err)
 	}
 
-	isSuccess1 := writeFile(dockerContents, "docker/Dockerfile", forceOverwrite)
-	isSuccess2 := writeFile(dockerContents, "docker/Dockerfile.aarch64", forceOverwrite)
+	isSuccess1 := duckerlib.WriteFile(dockerContents, "docker/Dockerfile", forceOverwrite)
+	isSuccess2 := duckerlib.WriteFile(dockerContents, "docker/Dockerfile.aarch64", forceOverwrite)
 
 	if isSuccess1 && isSuccess2 {
 		fmt.Println("Success!")
@@ -335,16 +336,16 @@ func initDockerfile(ctx *cli.Context) {
 		fmt.Println("Dockerfile already exist in docker directory")
 	}
 
-	globalConfig.Write(getDefaultGlobalConfigPath())
-	writeDefaultLocalConfig()
+	globalConfig.Write(duckerlib.GetDefaultGlobalConfigPath())
+	duckerlib.WriteDefaultLocalConfig()
 }
 
 func main() {
 	mydir, err := os.Getwd()
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println(err) // This direct error handling can remain, or use duckerlib.CheckError if exit is desired
 	}
-	globalConfig := readDefaultGlobalConfig()
+	globalConfig := duckerlib.ReadDefaultGlobalConfig()
 	organizationName := "jeikeilim"
 
 	if !globalConfig.IsEmpty() {
@@ -354,7 +355,7 @@ func main() {
 	baseDir := filepath.Base(mydir)
 	projectName := strings.ToLower(baseDir)
 
-	osArchType := getArchType()
+	osArchType := duckerlib.GetArchType()
 	dockerTag := fmt.Sprintf("%s/%s:%s", organizationName, projectName, osArchType)
 	const duckIcon = `
 

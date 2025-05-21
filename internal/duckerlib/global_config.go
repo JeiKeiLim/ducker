@@ -1,4 +1,4 @@
-package main
+package duckerlib
 
 import (
 	"bufio"
@@ -20,16 +20,16 @@ type GlobalConfig struct {
 	Contact      string
 }
 
-// Get default global config
+// GetDefaultGlobalConfig default global config
 // Asks config values if "" has given in the arguments
-func getDefaultGlobalConfig(organization string, name string, contact string) GlobalConfig {
+func GetDefaultGlobalConfig(organization string, name string, contact string) GlobalConfig {
 	if organization == "" {
 		organization = "jeikeilim"
 
 		reader := bufio.NewReader(os.Stdin)
 		fmt.Printf("Enter your organization name(Default: %s): ", organization)
 		keyIn, err := reader.ReadString('\n')
-		checkError(err)
+		CheckError(err) // Assuming CheckError will be the exported name from utils.go
 		if strings.TrimSpace(keyIn) != "" {
 			organization = keyIn
 		}
@@ -42,7 +42,7 @@ func getDefaultGlobalConfig(organization string, name string, contact string) Gl
 
 		fmt.Printf("Enter your name(Default: %s): ", name)
 		keyIn, err := reader.ReadString('\n')
-		checkError(err)
+		CheckError(err) // Assuming CheckError will be the exported name from utils.go
 		if strings.TrimSpace(keyIn) != "" {
 			name = keyIn
 		}
@@ -55,7 +55,7 @@ func getDefaultGlobalConfig(organization string, name string, contact string) Gl
 
 		fmt.Printf("Enter contact address (Default: %s): ", contact)
 		keyIn, err := reader.ReadString('\n')
-		checkError(err)
+		CheckError(err) // Assuming CheckError will be the exported name from utils.go
 		if strings.TrimSpace(keyIn) != "" {
 			contact = keyIn
 		}
@@ -71,8 +71,8 @@ func getDefaultGlobalConfig(organization string, name string, contact string) Gl
 	return globalConfig
 }
 
-// Get default global config path
-func getDefaultGlobalConfigPath() string {
+// GetDefaultGlobalConfigPath default global config path
+func GetDefaultGlobalConfigPath() string {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		log.Fatal("Failed to fetch user home directory! ", err)
@@ -82,8 +82,8 @@ func getDefaultGlobalConfigPath() string {
 	return configPath
 }
 
-func writeDefaultGlobalConfig(organization string, name string, contact string) {
-	configPath := getDefaultGlobalConfigPath()
+func WriteDefaultGlobalConfig(organization string, name string, contact string) {
+	configPath := GetDefaultGlobalConfigPath()
 	if _, err := os.Stat(configPath); err == nil {
 		return
 	}
@@ -99,7 +99,7 @@ func writeDefaultGlobalConfig(organization string, name string, contact string) 
 	fmt.Println("I won't be asking this again, please look at", configPath, "instaed.")
 }
 
-func readGlobalConfig(path string) GlobalConfig {
+func ReadGlobalConfig(path string) GlobalConfig {
 	yfile, err := ioutil.ReadFile(path)
 	if err != nil {
 		log.Fatal(err)
@@ -115,13 +115,13 @@ func readGlobalConfig(path string) GlobalConfig {
 	return config
 }
 
-func readDefaultGlobalConfig() GlobalConfig {
-	configPath := getDefaultGlobalConfigPath()
+func ReadDefaultGlobalConfig() GlobalConfig {
+	configPath := GetDefaultGlobalConfigPath()
 	if _, err := os.Stat(configPath); err != nil {
 		return GlobalConfig{}
 	}
 
-	return readGlobalConfig(configPath)
+	return ReadGlobalConfig(configPath)
 }
 
 // IsEmpty returns true if all member variable strings are ""
