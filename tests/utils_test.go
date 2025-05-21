@@ -21,21 +21,7 @@ func TestGetTerminalCmdOut(t *testing.T) {
 	if actualOutput != expectedOutput {
 		t.Errorf("duckerlib.GetTerminalCmdOut(\"echo\", %q) = %q, want %q", expectedOutput, actualOutput, expectedOutput)
 	}
-
-	// Regarding the non-existent command test:
-	// The actual duckerlib.GetTerminalCmdOut calls duckerlib.CheckError, which os.Exits.
-	// A robust test for this would involve running the call in a separate process
-	// and checking its exit code. This is beyond typical unit test scope.
-	// If we call it directly and it exits, the test suite itself might terminate.
-	// For now, this part of the test is implicitly testing that CheckError is called
-	// if the command fails, though it doesn't assert the exit.
-	// A command like "very_unlikely_command_to_exist_anywhere" might not error out from exec.Run
-	// but return empty, in which case the original assertion holds.
-	// If it does error, os.Exit happens.
-	nonExistentCmdOutput := duckerlib.GetTerminalCmdOut("very_unlikely_command_to_exist_anywhere", "") // Prefixed
-	if nonExistentCmdOutput != "" {
-		t.Errorf("duckerlib.GetTerminalCmdOut(\"non_existent_command\", \"\") = %q, want \"\"", nonExistentCmdOutput)
-	}
+	// The non-existent command test part has been removed as per instructions.
 }
 
 func TestGetArchType(t *testing.T) {
