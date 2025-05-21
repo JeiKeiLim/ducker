@@ -23,10 +23,13 @@ type GlobalConfig struct {
 // GetDefaultGlobalConfig default global config
 // Asks config values if "" has given in the arguments
 func GetDefaultGlobalConfig(organization string, name string, contact string) GlobalConfig {
+	var reader *bufio.Reader // Declare reader once
+
 	if organization == "" {
 		organization = "jeikeilim"
-
-		reader := bufio.NewReader(os.Stdin)
+		if reader == nil { // Initialize on first use
+			reader = bufio.NewReader(os.Stdin)
+		}
 		fmt.Printf("Enter your organization name(Default: %s): ", organization)
 		keyIn, err := reader.ReadString('\n')
 		CheckError(err) // Assuming CheckError will be the exported name from utils.go
@@ -38,8 +41,9 @@ func GetDefaultGlobalConfig(organization string, name string, contact string) Gl
 
 	if name == "" {
 		name = "Anonymous"
-		reader := bufio.NewReader(os.Stdin)
-
+		if reader == nil { // Initialize on first use
+			reader = bufio.NewReader(os.Stdin)
+		}
 		fmt.Printf("Enter your name(Default: %s): ", name)
 		keyIn, err := reader.ReadString('\n')
 		CheckError(err) // Assuming CheckError will be the exported name from utils.go
@@ -51,8 +55,9 @@ func GetDefaultGlobalConfig(organization string, name string, contact string) Gl
 
 	if contact == "" {
 		contact = "None"
-		reader := bufio.NewReader(os.Stdin)
-
+		if reader == nil { // Initialize on first use
+			reader = bufio.NewReader(os.Stdin)
+		}
 		fmt.Printf("Enter contact address (Default: %s): ", contact)
 		keyIn, err := reader.ReadString('\n')
 		CheckError(err) // Assuming CheckError will be the exported name from utils.go
