@@ -1,8 +1,6 @@
 package duckerlib_test
 
 import (
-	"bufio" // Still needed for TestAsksAreYouSure's os.Pipe interaction if not directly using duckerlib.AsksAreYouSure's reader
-	"bytes" // Still needed for TestAsksAreYouSure
 	"fmt"   // Still needed for httptest server and error messages
 	"io/ioutil"
 	"net/http"

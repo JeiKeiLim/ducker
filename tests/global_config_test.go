@@ -1,11 +1,9 @@
 package duckerlib_test
 
 import (
-	"bytes"
 	"io/ioutil"
 	"os"
 	"reflect"
-	"strings"
 	"testing"
 
 	"github.com/jeikeilim/ducker/internal/duckerlib"
