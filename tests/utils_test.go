@@ -39,28 +39,42 @@ func TestWriteFile(t *testing.T) {
 	}
 	filePath := tmpfile.Name()
 	tmpfile.Close()
-	defer os.Remove(filePath)
+	// Remove the file initially created by TempFile to test creation path
+	err = os.Remove(filePath)
+	if err != nil {
+		// If removal fails, it might be because the file doesn't exist (e.g. on some systems/setups)
+		// or a genuine error. If it's a "not exist" error, we can ignore it.
+		// For simplicity in this automated context, we'll log if it's not a "not exist" error.
+		// However, the core logic of the test relies on WriteFile creating it if it's not there.
+		if !os.IsNotExist(err) {
+			t.Logf("Warning: Failed to remove temp file '%s' before test: %v. Proceeding anyway.", filePath, err)
+		}
+	}
+	defer os.Remove(filePath) // Still useful for cleanup if test aborts or file is recreated
 
 	content1 := "Hello, World!"
 	content2 := "New Content Here"
 
-	if !duckerlib.WriteFile(content1, filePath, false) { // Prefixed
-		t.Errorf("duckerlib.WriteFile(content1, path, false) returned false, want true for initial write")
+	// Test initial write (file does not exist, overwrite=false)
+	if !duckerlib.WriteFile(content1, filePath, false) {
+		t.Errorf("duckerlib.WriteFile(content1, path, false) returned false, want true for initial write to non-existent file")
 	}
 	data, _ := ioutil.ReadFile(filePath)
 	if string(data) != content1 {
 		t.Errorf("File content after initial write = %q, want %q", string(data), content1)
 	}
 
-	if duckerlib.WriteFile(content2, filePath, false) { // Prefixed
-		t.Errorf("duckerlib.WriteFile(content2, path, false) returned true, want false for existing file")
+	// Test attempt to write to existing file with overwrite=false
+	if duckerlib.WriteFile(content2, filePath, false) { // This should now correctly fail (return false)
+		t.Errorf("duckerlib.WriteFile(content2, path, false) returned true, want false for existing file with overwrite=false")
 	}
-	data, _ = ioutil.ReadFile(filePath)
+	data, _ = ioutil.ReadFile(filePath) // Content should remain content1
 	if string(data) != content1 {
 		t.Errorf("File content after failed overwrite (overwrite=false) = %q, want %q", string(data), content1)
 	}
 
-	if !duckerlib.WriteFile(content2, filePath, true) { // Prefixed
+	// Test overwrite on existing file
+	if !duckerlib.WriteFile(content2, filePath, true) {
 		t.Errorf("duckerlib.WriteFile(content2, path, true) returned false, want true for overwrite")
 	}
 	data, _ = ioutil.ReadFile(filePath)
