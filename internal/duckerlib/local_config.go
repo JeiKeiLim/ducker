@@ -1,4 +1,4 @@
-package main
+package duckerlib
 
 import (
 	"io/ioutil"
@@ -20,8 +20,8 @@ type LocalConfig struct {
 	LastExecID string
 }
 
-// Get default local config setting
-func getDefaultLocalConfig() LocalConfig {
+// GetDefaultLocalConfig default local config setting
+func GetDefaultLocalConfig() LocalConfig {
 	config := LocalConfig{
 		Run_Arg: []string{
 			"--privileged",
@@ -40,15 +40,15 @@ func getDefaultLocalConfig() LocalConfig {
 	return config
 }
 
-// Write default local config file
-func writeDefaultLocalConfig() {
-	configPath := getDefaultLocalConfigPath()
-	config := getDefaultLocalConfig()
+// WriteDefaultLocalConfig default local config file
+func WriteDefaultLocalConfig() {
+	configPath := GetDefaultLocalConfigPath()
+	config := GetDefaultLocalConfig()
 	config.Write(configPath)
 }
 
-// Get default local config path which is $PWD/.ducker.yaml
-func getDefaultLocalConfigPath() string {
+// GetDefaultLocalConfigPath default local config path which is $PWD/.ducker.yaml
+func GetDefaultLocalConfigPath() string {
 	homeDir, err := os.Getwd()
 	if err != nil {
 		log.Fatal(err)
@@ -59,8 +59,8 @@ func getDefaultLocalConfigPath() string {
 	return configPath
 }
 
-// Read local config given the path
-func readLocalConfig(path string) LocalConfig {
+// ReadLocalConfig local config given the path
+func ReadLocalConfig(path string) LocalConfig {
 	yfile, err := ioutil.ReadFile(path)
 	if err != nil {
 		return LocalConfig{}
@@ -76,10 +76,10 @@ func readLocalConfig(path string) LocalConfig {
 	return config
 }
 
-// Read default local config which is located at $PWD/.ducker.yaml
-func readDefaultLocalConfig() LocalConfig {
-	configPath := getDefaultLocalConfigPath()
-	return readLocalConfig(configPath)
+// ReadDefaultLocalConfig default local config which is located at $PWD/.ducker.yaml
+func ReadDefaultLocalConfig() LocalConfig {
+	configPath := GetDefaultLocalConfigPath()
+	return ReadLocalConfig(configPath)
 }
 
 // IsEmpty returns true if run and build arg are empty
